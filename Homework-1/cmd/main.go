@@ -1,16 +1,13 @@
 package main
 
 import (
-	"Homework-1/internal/model"
 	"Homework-1/internal/service"
 	"Homework-1/internal/storage"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
 	"os"
 	"strconv"
-	"time"
 )
 
 func main() {
@@ -59,39 +56,7 @@ func main() {
 			log.Println(err)
 			return
 		}
-		// Возможно стоит перенести эти проверки в service.go или в storage.go?
-		if *createOrderID == 0 {
-			log.Println("не указан id заказа")
-			return
-		}
-
-		if *createCustomerID == 0 {
-			log.Println("не указан id получателя")
-			return
-		}
-
-		if *createExpireDateStr == "" {
-			log.Println("не указан срок хранения заказа")
-			return
-		}
-
-		createExpireDate, err := time.Parse("2006-1-2", *createExpireDateStr)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-
-		if createExpireDate.Before(time.Now()) {
-			log.Println("срок хранения товара находится в прошлом")
-			return
-		}
-
-		err = serv.Create(model.OrderInput{
-
-			ID:         *createOrderID,
-			CustomerID: *createCustomerID,
-			ExpireDate: createExpireDate,
-		})
+		err = serv.Create(*createOrderID, *createCustomerID, *createExpireDateStr)
 		if err != nil {
 			log.Println(err)
 			return
@@ -104,12 +69,6 @@ func main() {
 			log.Println(err)
 			return
 		}
-
-		// Возможно стоит перенести эти проверки в service.go или в storage.go?
-		if *deleteOrderID == 0 {
-			log.Println("не указано id возвращаемого заказа")
-			return
-		}
 		err = serv.Delete(*deleteOrderID)
 		if err != nil {
 			log.Println(err)
@@ -119,10 +78,6 @@ func main() {
 
 	case "list":
 		err = listCmd.Parse(os.Args[2:])
-		if *listUserID == 0 {
-			log.Println("не задано id пользователя")
-			return
-		}
 		list, err := serv.List(*listUserID, *listLimit, *listOnlyNotFinished)
 		if err != nil {
 			log.Println(err)
@@ -144,20 +99,8 @@ func main() {
 
 	case "return":
 		err = returnCmd.Parse(os.Args[2:])
-
 		if err != nil {
 			log.Println(err)
-			return
-		}
-
-		// Возможно стоит перенести эти проверки в service.go или в storage.go?
-		if *returnOrderID == 0 {
-			log.Println("не указано id возвращаемого заказа")
-			return
-		}
-
-		if *returnUserID == 0 {
-			log.Println("не указано id клиента, возвращающего заказ")
 			return
 		}
 		err = serv.Return(*returnOrderID, *returnUserID)
@@ -187,16 +130,7 @@ func main() {
 			log.Println(err)
 			return
 		}
-		if *finishOrderIDsStr == "" {
-			log.Println("не указаны id выдаваемых заказов")
-			return
-		}
-
-		var finishOrderIDs []int
-		if err := json.Unmarshal([]byte(*finishOrderIDsStr), &finishOrderIDs); err != nil {
-			panic(err)
-		}
-		err = serv.Finish(finishOrderIDs)
+		err = serv.Finish(*finishOrderIDsStr)
 		if err != nil {
 			log.Println(err)
 			return
@@ -204,7 +138,6 @@ func main() {
 		fmt.Println("заказы успешно выданы")
 
 	case "help":
-		// Возможно стоит перенести это в service.go?
 		fmt.Println("Команда 'create' используется при приёме заказа от курьера и добавляет его в базу данных")
 		createCmd.SetOutput(os.Stdout)
 		createCmd.PrintDefaults()

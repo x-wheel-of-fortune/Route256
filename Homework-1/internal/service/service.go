@@ -3,6 +3,7 @@ package service
 import (
 	"Homework-1/internal/model"
 	storage2 "Homework-1/internal/storage"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -23,18 +24,46 @@ func New(s storage) Service {
 }
 
 // Create ...
-func (s Service) Create(input model.OrderInput) error {
+func (s Service) Create(orderID int, customerID int, expireDateStr string) error {
+	if orderID == 0 {
+		return errors.New("не указан id заказа")
+	}
+	if customerID == 0 {
+		return errors.New("не указан id получателя")
+	}
+	if expireDateStr == "" {
+		return errors.New("не указан срок хранения заказа")
+	}
+	expireDate, err := time.Parse("2006-1-2", expireDateStr)
+	if err != nil {
+		return err
+	}
+	if expireDate.Before(time.Now()) {
+		return errors.New("срок хранения товара находится в прошлом")
+	}
+
 	orders := s.storage.GetAllOrders()
-	for _, i := range orders {
-		if input.ID == i.ID {
+	for _, order := range orders {
+		if orderID == order.ID {
 			return errors.New("заказ с этим id уже есть в базе")
 		}
 	}
-	return s.storage.Create(input)
+
+	newOrder := model.OrderInput{
+		ID:         orderID,
+		CustomerID: customerID,
+		ExpireDate: expireDate,
+	}
+
+	return s.storage.Create(newOrder)
 }
 
 // Delete ...
 func (s Service) Delete(id int) error {
+	if id == 0 {
+		return errors.New("не указано id возвращаемого заказа")
+	}
+
 	orders := s.storage.GetAllOrders()
 	found := false
 	for indx, order := range orders {
@@ -59,6 +88,13 @@ func (s Service) Delete(id int) error {
 
 // Return ...
 func (s Service) Return(id int, customerId int) error {
+	if id == 0 {
+		return errors.New("не указано id возвращаемого заказа")
+	}
+	if customerId == 0 {
+		return errors.New("не указано id клиента, возвращающего заказ")
+	}
+
 	orders := s.storage.GetAllOrders()
 	found := false
 	for indx, order := range orders {
@@ -87,7 +123,16 @@ func (s Service) Return(id int, customerId int) error {
 }
 
 // Finish ...
-func (s Service) Finish(ids []int) error {
+func (s Service) Finish(idsStr string) error {
+	if idsStr == "" {
+		return errors.New("не указаны id выдаваемых заказов")
+	}
+	var ids []int
+	err := json.Unmarshal([]byte(idsStr), &ids)
+	if err != nil {
+		return err
+	}
+
 	customerId := 0
 	orders := s.storage.GetAllOrders()
 	// TODO Использовать вложенные циклы неэффективно, переделать с использованием множества
@@ -136,6 +181,10 @@ func (s Service) Finish(ids []int) error {
 
 // List ...
 func (s Service) List(customerId int, limit int, onlyNotFinished bool) ([]model.Order, error) {
+	if customerId == 0 {
+		return nil, errors.New("не задано id пользователя")
+	}
+
 	orders := s.storage.GetAllOrders()
 	customer_orders := make([]model.Order, 0, len(orders))
 	for i := len(orders) - 1; i >= 0; i-- {
