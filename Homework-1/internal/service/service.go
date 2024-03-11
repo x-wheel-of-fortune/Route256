@@ -16,20 +16,16 @@ type storage interface {
 }
 
 type Service struct {
-	s storage
+	storage storage
 }
 
 func New(s storage) Service {
-	return Service{s: s}
+	return Service{storage: s}
 }
 
 // Create ...
 func (s Service) Create(input model.OrderInput) error {
-	//if len(input.Description) == 0 {
-	//	return errors.New("пустое описание цели")
-	//}
-
-	return s.s.Create(input)
+	return s.storage.Create(input)
 }
 
 // Delete ...
@@ -37,12 +33,12 @@ func (s Service) Delete(id int) error {
 	if id == 0 {
 		return errors.New("нулевой id цели")
 	}
-	return s.s.Delete(id)
+	return s.storage.Delete(id)
 }
 
 // List ...
 func (s Service) List(customerId int, limit int, onlyNotFinished bool) ([]model.Order, error) {
-	orders, err := s.s.List(customerId, limit, onlyNotFinished)
+	orders, err := s.storage.List(customerId, limit, onlyNotFinished)
 	if err != nil {
 		return nil, err
 	}
@@ -51,12 +47,12 @@ func (s Service) List(customerId int, limit int, onlyNotFinished bool) ([]model.
 
 // Return ...
 func (s Service) Return(id int, customerId int) error {
-	return s.s.Return(id, customerId)
+	return s.storage.Return(id, customerId)
 }
 
 // Returns ...
 func (s Service) Returns(resultsPerPage int) (string, error) {
-	orders, err := s.s.Returns()
+	orders, err := s.storage.Returns()
 	if err != nil {
 		return "", err
 	}
@@ -80,7 +76,7 @@ func (s Service) Returns(resultsPerPage int) (string, error) {
 }
 
 func (s Service) Finish(ids []int) error {
-	err := s.s.Finish(ids)
+	err := s.storage.Finish(ids)
 	if err != nil {
 		return err
 	}
