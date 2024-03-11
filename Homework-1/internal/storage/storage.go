@@ -14,6 +14,7 @@ const storageName = "storage"
 
 type Storage struct {
 	storage *os.File
+	orders  []OrderDTO
 }
 
 func New() (Storage, error) {
@@ -21,17 +22,15 @@ func New() (Storage, error) {
 	if err != nil {
 		return Storage{}, err
 	}
-	return Storage{storage: file}, nil
+	ords, err := listAll(file)
+	return Storage{storage: file, orders: ords}, nil
 
 }
 
 // Create creates order
 func (s *Storage) Create(input model.OrderInput) error {
-	all, err := s.listAll()
-	if err != nil {
-		return err
-	}
-	for _, i := range all {
+
+	for _, i := range s.orders {
 		if input.ID == i.ID {
 			return errors.New("заказ с этим id уже есть в базе")
 		}
@@ -42,8 +41,8 @@ func (s *Storage) Create(input model.OrderInput) error {
 		ExpireDate: input.ExpireDate,
 	}
 
-	all = append(all, newOrder)
-	err = writeBytes(all)
+	s.orders = append(s.orders, newOrder)
+	err := writeBytes(s.orders)
 	if err != nil {
 		return err
 	}
@@ -65,12 +64,9 @@ func writeBytes(orders []OrderDTO) error {
 
 // Delete deletes an order
 func (s *Storage) Delete(id int) error {
-	all, err := s.listAll()
-	if err != nil {
-		return err
-	}
+
 	found := false
-	for indx, order := range all {
+	for indx, order := range s.orders {
 		if order.ID == id {
 			if order.IsFinished {
 				return errors.New("этот заказ уже был выдан получателю")
@@ -78,14 +74,14 @@ func (s *Storage) Delete(id int) error {
 			if order.ExpireDate.After(time.Now()) {
 				return errors.New("срок хранения этого заказа ещё не истёк")
 			}
-			all[indx].IsDeleted = true
+			s.orders[indx].IsDeleted = true
 			found = true
 		}
 	}
 	if !found {
 		return errors.New("заказ с данным id не найден")
 	}
-	err = writeBytes(all)
+	err := writeBytes(s.orders)
 	if err != nil {
 		return err
 	}
@@ -94,12 +90,9 @@ func (s *Storage) Delete(id int) error {
 
 // Return set the target order IsReturnedByClient status to True
 func (s *Storage) Return(id int, customer_id int) error {
-	all, err := s.listAll()
-	if err != nil {
-		return err
-	}
+
 	found := false
-	for indx, order := range all {
+	for indx, order := range s.orders {
 		if order.ID == id {
 			if order.IsReturnedByClient {
 				return errors.New("возврат этого заказа уже был принят")
@@ -113,14 +106,14 @@ func (s *Storage) Return(id int, customer_id int) error {
 			if time.Now().After(order.DateFinished.Add(24 * time.Hour * 2)) {
 				return errors.New("прошло уже более 2-х дней с момента выдачи заказа")
 			}
-			all[indx].IsReturnedByClient = true
+			s.orders[indx].IsReturnedByClient = true
 			found = true
 		}
 	}
 	if !found {
 		return errors.New("заказ с данным id не найден")
 	}
-	err = writeBytes(all)
+	err := writeBytes(s.orders)
 	if err != nil {
 		return err
 	}
@@ -129,15 +122,12 @@ func (s *Storage) Return(id int, customer_id int) error {
 
 // Finish finishes an order
 func (s *Storage) Finish(ids []int) error {
-	all, err := s.listAll()
-	if err != nil {
-		return err
-	}
+
 	customerId := 0
 	// TODO Использовать вложенные циклы неэффективно, переделать с использованием множества
 	for _, id := range ids {
 		found := false
-		for _, order := range all {
+		for _, order := range s.orders {
 			if order.ID == id {
 				if customerId == 0 {
 					customerId = order.CustomerID
@@ -164,31 +154,27 @@ func (s *Storage) Finish(ids []int) error {
 	}
 
 	for _, id := range ids {
-		for indx, order := range all {
+		for indx, order := range s.orders {
 			if order.ID == id {
-				all[indx].IsFinished = true
-				all[indx].DateFinished = time.Now()
+				s.orders[indx].IsFinished = true
+				s.orders[indx].DateFinished = time.Now()
 			}
 		}
 	}
 
-	err = writeBytes(all)
+	err := writeBytes(s.orders)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-// List returns all orders of the target user from storage
+// List returns s.orders orders of the target user from storage
 func (s *Storage) List(customerId int, limit int, onlyNotFinished bool) ([]model.Order, error) {
-	all, err := s.listAll()
-	if err != nil {
-		return nil, err
-	}
 
-	customer_orders := make([]model.Order, 0, len(all))
-	for i := len(all) - 1; i >= 0; i-- {
-		order := all[i]
+	customer_orders := make([]model.Order, 0, len(s.orders))
+	for i := len(s.orders) - 1; i >= 0; i-- {
+		order := s.orders[i]
 		if !order.IsDeleted && order.CustomerID == customerId && (!onlyNotFinished || !order.IsFinished) {
 			customer_orders = append(customer_orders, model.Order{
 				ID:                 order.ID,
@@ -211,15 +197,11 @@ func (s *Storage) List(customerId int, limit int, onlyNotFinished bool) ([]model
 	return customer_orders, nil
 }
 
-// Returns returns all returned orders from storage
+// Returns returns s.orders returned orders from storage
 func (s *Storage) Returns() ([]model.Order, error) {
-	all, err := s.listAll()
-	if err != nil {
-		return nil, err
-	}
 
-	returned := make([]model.Order, 0, len(all))
-	for _, order := range all {
+	returned := make([]model.Order, 0, len(s.orders))
+	for _, order := range s.orders {
 		if order.IsReturnedByClient {
 			returned = append(returned, model.Order{
 				ID:                 order.ID,
@@ -236,8 +218,8 @@ func (s *Storage) Returns() ([]model.Order, error) {
 	return returned, nil
 }
 
-func (s *Storage) listAll() ([]OrderDTO, error) {
-	reader := bufio.NewReader(s.storage)
+func listAll(file *os.File) ([]OrderDTO, error) {
+	reader := bufio.NewReader(file)
 	rawBytes, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, err
