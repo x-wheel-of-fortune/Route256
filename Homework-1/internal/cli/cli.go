@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"Homework-1/internal/interactive"
 	"Homework-1/internal/service"
 	"flag"
 	"fmt"
@@ -180,5 +181,10 @@ func (c *CLI) HandleHelp() error {
 	returnsCmd.SetOutput(os.Stdout)
 	returnsCmd.PrintDefaults()
 	fmt.Println("")
+	return nil
+}
+
+func (c *CLI) HandleInteractive() error {
+	interactive.Run()
 	return nil
 }

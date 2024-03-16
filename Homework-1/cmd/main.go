@@ -43,6 +43,8 @@ func main() {
 		err = cli.HandleFinish(os.Args[2:])
 	case "help":
 		err = cli.HandleHelp()
+	case "interactive":
+		err = cli.HandleInteractive()
 
 	default:
 		fmt.Println("неизвестная команда")
