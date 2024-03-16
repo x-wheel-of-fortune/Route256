@@ -3,10 +3,13 @@ package cli
 import (
 	"Homework-1/internal/interactive"
 	"Homework-1/internal/service"
+	"context"
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
 )
 
 type CLI struct {
@@ -185,6 +188,17 @@ func (c *CLI) HandleHelp() error {
 }
 
 func (c *CLI) HandleInteractive() error {
-	interactive.Run()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	go interactive.Run(ctx)
+
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+	<-sigCh
+	fmt.Println("Получен сигнал завершения, выход из программы...")
+	cancel()
+
 	return nil
 }
