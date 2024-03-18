@@ -1,55 +1,15 @@
 package interactive
 
 import (
+	"Homework-1/internal/interactive_storage"
 	"Homework-1/internal/model"
 	"context"
-	"errors"
 	"fmt"
 	"log"
-	"sync"
 	"time"
 )
 
-type Storage struct {
-	points map[int]model.PickupPoint
-	mx     sync.RWMutex
-}
-
-func NewStorage() *Storage {
-	points := make(map[int]model.PickupPoint)
-	mx := sync.RWMutex{}
-	return &Storage{points: points, mx: mx}
-}
-
-func (s Storage) Add(newPoint model.PickupPoint) error {
-	s.mx.Lock()
-	defer s.mx.Unlock()
-	_, ok := s.points[newPoint.ID]
-	if ok {
-		return errors.New(fmt.Sprintf("ПВЗ с id=%d уже существует", newPoint.ID))
-	}
-	s.points[newPoint.ID] = newPoint
-	return nil
-}
-
-func (s Storage) Get(id int) (model.PickupPoint, error) {
-	s.mx.RLock()
-	defer s.mx.RUnlock()
-	point, ok := s.points[id]
-	if !ok {
-		return model.PickupPoint{}, errors.New(fmt.Sprintf("ПВЗ с id=%d не найден", id))
-	}
-	return point, nil
-}
-
-func (s Storage) PrintAll() {
-	s.mx.RLock()
-	defer s.mx.RUnlock()
-	points := s.points
-	fmt.Println(points)
-}
-
-func Adder(addChanel chan model.PickupPoint, stor *Storage, infoChannel chan string) {
+func Adder(addChanel chan model.PickupPoint, stor *interactive_storage.Storage, infoChannel chan string) {
 	for {
 		newPoint, ok := <-addChanel
 		if !ok {
@@ -68,7 +28,7 @@ func Adder(addChanel chan model.PickupPoint, stor *Storage, infoChannel chan str
 	}
 }
 
-func Reader(readChanel chan int, stor *Storage, infoChannel chan string) {
+func Reader(readChanel chan int, stor *interactive_storage.Storage, infoChannel chan string) {
 	for {
 		id, ok := <-readChanel
 		if !ok {
@@ -101,7 +61,7 @@ func Overseer(infoChannel chan string) {
 func Run(ctx context.Context) {
 	var id int
 	var name, address, phoneNumber string
-	stor := NewStorage()
+	stor := interactive_storage.NewStorage()
 
 	infoChannel := make(chan string)
 	defer close(infoChannel)
