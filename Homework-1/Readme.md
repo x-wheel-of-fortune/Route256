@@ -71,7 +71,7 @@ _Посмотрите на результат выполнения дз 2. Се�
 ### Добавление ПВЗ
 
 ```bash
- curl http://localhost:9000/pickup_point -d \
+ curl http://localhost:9000/pickup_point  -u test:test -i -d \
  '{
     "name": "PickupPoint_1",
     "address":"Address_1",
@@ -81,7 +81,7 @@ _Посмотрите на результат выполнения дз 2. Се�
 ### Обновление информации о ПВЗ
 
 ```bash
-curl http://localhost:9000/pickup_point -X PUT -d \
+curl http://localhost:9000/pickup_point -X PUT -u test:test -i -d \
 '{
     "id":1,
     "name": "Updated_PickupPoint_1",
@@ -93,16 +93,16 @@ curl http://localhost:9000/pickup_point -X PUT -d \
 ### Получение информации о ПВЗ
 
 ```bash
-curl http://localhost:9000/pickup_point/1
+curl http://localhost:9000/pickup_point/1  -u test:test -i
 ```
 
 ### Удаление ПВЗ
 
 ```bash
-curl -X DELETE http://localhost:9000/pickup_point/1
+curl -X DELETE http://localhost:9000/pickup_point/1  -u test:test -i
 ```
 
 ### Получение списка всех ПВЗ
 ```bash
-curl http://localhost:9000/pickup_point/list
+curl http://localhost:9000/pickup_point/list -u test:test -i
 ```

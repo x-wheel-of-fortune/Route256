@@ -12,6 +12,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/gorilla/mux"
@@ -285,13 +286,16 @@ func (s *server1) List(w http.ResponseWriter, req *http.Request) {
 
 func authMiddleware(handler http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
-		//username, password, ok := req.BasicAuth()
-		//if ok {
-		//	w.WriteHeader(http.StatusUnauthorized)
-		//	return
-		//}
-		//fmt.Println(username, password)
 
+		true_username, username_exists := os.LookupEnv("USER")
+		true_password, password_exists := os.LookupEnv("PASSWORD")
+		if username_exists && password_exists {
+			username, password, ok := req.BasicAuth()
+			if !ok || username != true_username || password != true_password {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+		}
 		if req.Method == http.MethodPost || req.Method == http.MethodPut {
 			body, err := io.ReadAll(req.Body)
 			req.Body.Close() //  must close
