@@ -4,6 +4,7 @@ import (
 	"Homework-1/internal/pkg/db"
 	"Homework-1/internal/pkg/repository"
 	"Homework-1/internal/pkg/repository/postgresql"
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -64,7 +65,7 @@ func main() {
 	pickupPointsRepo := postgresql.NewPickupPoints(database)
 	implemetation := server1{repo: pickupPointsRepo}
 
-	http.Handle("/", createRouter(implemetation))
+	http.Handle("/", authMiddleware(createRouter(implemetation)))
 	if err := http.ListenAndServe(port, nil); err != nil {
 		log.Fatal(err)
 	}
@@ -280,4 +281,33 @@ func (s *server1) List(w http.ResponseWriter, req *http.Request) {
 	}
 	pointsJson, _ := json.Marshal(points)
 	w.Write(pointsJson)
+}
+
+func authMiddleware(handler http.Handler) http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		//username, password, ok := req.BasicAuth()
+		//if ok {
+		//	w.WriteHeader(http.StatusUnauthorized)
+		//	return
+		//}
+		//fmt.Println(username, password)
+
+		if req.Method == http.MethodPost || req.Method == http.MethodPut {
+			body, err := io.ReadAll(req.Body)
+			req.Body.Close() //  must close
+			req.Body = io.NopCloser(bytes.NewBuffer(body))
+			var unm updatePickupPointRequest
+			if err = json.Unmarshal(body, &unm); err != nil {
+				log.Println(err)
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+			fmt.Printf("Method: %s, body: %+v\n", req.Method, unm)
+		} else if req.Method == http.MethodDelete {
+			fmt.Printf("Method: %s, to_be_deleted: %s\n", req.Method, req.URL)
+		}
+
+		handler.ServeHTTP(w, req)
+
+	}
 }

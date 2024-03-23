@@ -37,16 +37,19 @@ func (r *PickupPointRepo) GetByID(ctx context.Context, id int64) (*repository.Pi
 
 func (r *PickupPointRepo) Update(ctx context.Context, id int64, pickup_point *repository.PickupPoint) (int64, error) {
 	err := r.db.ExecQueryRow(ctx, `UPDATE pickup_points SET name=$1, address=$2, phone_number=$3 WHERE id=$4 RETURNING id;`, pickup_point.Name, pickup_point.Address, pickup_point.PhoneNumber, id).Scan(&id)
+	if err != nil {
+		return -1, err
+	}
 	return id, err
 }
 
 func (r *PickupPointRepo) Delete(ctx context.Context, id int64) error {
-	var a repository.PickupPoint
-	err := r.db.Get(ctx, &a, "DELETE FROM pickup_points where id=$1", id)
+	_, err := r.GetByID(ctx, id)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return repository.ErrObjectNotFound
-		}
+		return err
+	}
+	_, err = r.db.Exec(ctx, "DELETE FROM pickup_points where id=$1", id)
+	if err != nil {
 		return err
 	}
 	return nil
