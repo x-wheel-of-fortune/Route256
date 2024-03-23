@@ -79,29 +79,27 @@ func createRouter(implemetation server1) *mux.Router {
 		case http.MethodPut:
 			implemetation.Update(w, req)
 		default:
-			fmt.Println("error")
+			fmt.Println("This route does not support", req.Method, "method.")
 		}
 	})
 
 	router.HandleFunc(fmt.Sprintf("/pickup_point/{%s:[0-9]+}", queryParamKey), func(w http.ResponseWriter, req *http.Request) {
 		switch req.Method {
 		case http.MethodGet:
-			fmt.Println("Getbyid")
 			implemetation.GetByID(w, req)
 		case http.MethodDelete:
 			implemetation.Delete(w, req)
 		default:
-			fmt.Println("error")
+			fmt.Println("This route does not support", req.Method, "method.")
 		}
 	})
 
 	router.HandleFunc("/pickup_point/list", func(w http.ResponseWriter, req *http.Request) {
 		switch req.Method {
 		case http.MethodGet:
-			fmt.Println("Getbyid")
 			implemetation.List(w, req)
 		default:
-			fmt.Println("error")
+			fmt.Println("This route does not support", req.Method, "method.")
 		}
 	})
 
@@ -111,16 +109,32 @@ func createRouter(implemetation server1) *mux.Router {
 func (s *server1) Create(w http.ResponseWriter, req *http.Request) {
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
-		fmt.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
+		log.Println(err)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	var unm addPickupPointRequest
 	if err = json.Unmarshal(body, &unm); err != nil {
-		fmt.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
+		log.Println(err)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	if unm.Name == "" {
+		log.Println("Name field is empty")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if unm.Address == "" {
+		log.Println("Address field is empty")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if unm.PhoneNumber == "" {
+		log.Println("PhoneNumber field is empty")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 	pickupPointRepo := &repository.PickupPoint{
 		Name:        unm.Name,
 		Address:     unm.Address,
@@ -128,6 +142,7 @@ func (s *server1) Create(w http.ResponseWriter, req *http.Request) {
 	}
 	id, err := s.repo.Add(req.Context(), pickupPointRepo)
 	if err != nil {
+		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -145,16 +160,38 @@ func (s *server1) Create(w http.ResponseWriter, req *http.Request) {
 func (s *server1) Update(w http.ResponseWriter, req *http.Request) {
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
-		fmt.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
+		log.Println(err)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	var unm updatePickupPointRequest
 	if err = json.Unmarshal(body, &unm); err != nil {
-		fmt.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
+		log.Println(err)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+
+	if unm.ID == 0 {
+		log.Println("ID field is empty")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if unm.Name == "" {
+		log.Println("Name field is empty")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if unm.Address == "" {
+		log.Println("Address field is empty")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if unm.PhoneNumber == "" {
+		log.Println("PhoneNumber field is empty")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 	id := unm.ID
 	pickupPointRepo := &repository.PickupPoint{
 		Name:        unm.Name,
@@ -163,6 +200,7 @@ func (s *server1) Update(w http.ResponseWriter, req *http.Request) {
 	}
 	id, err = s.repo.Update(req.Context(), id, pickupPointRepo)
 	if err != nil {
+		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -186,7 +224,7 @@ func (s *server1) GetByID(w http.ResponseWriter, req *http.Request) {
 	}
 	keyInt, err := strconv.ParseInt(key, 10, 64)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -194,10 +232,11 @@ func (s *server1) GetByID(w http.ResponseWriter, req *http.Request) {
 	point, err := s.repo.GetByID(req.Context(), keyInt)
 	if err != nil {
 		if errors.Is(err, repository.ErrObjectNotFound) {
+			log.Println("Could not find object with id =", keyInt)
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		fmt.Println(err)
+		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -214,7 +253,7 @@ func (s *server1) Delete(w http.ResponseWriter, req *http.Request) {
 	}
 	keyInt, err := strconv.ParseInt(key, 10, 64)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -222,10 +261,11 @@ func (s *server1) Delete(w http.ResponseWriter, req *http.Request) {
 	err = s.repo.Delete(req.Context(), keyInt)
 	if err != nil {
 		if errors.Is(err, repository.ErrObjectNotFound) {
+			log.Println("Could not find object with id =", keyInt)
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		fmt.Println(err)
+		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -234,11 +274,7 @@ func (s *server1) Delete(w http.ResponseWriter, req *http.Request) {
 func (s *server1) List(w http.ResponseWriter, req *http.Request) {
 	points, err := s.repo.List(req.Context())
 	if err != nil {
-		if errors.Is(err, repository.ErrObjectNotFound) {
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
-		fmt.Println(err)
+		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

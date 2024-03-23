@@ -6,6 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"github.com/jackc/pgx/v4"
 )
 
 type PickupPointRepo struct {
@@ -26,7 +27,7 @@ func (r *PickupPointRepo) GetByID(ctx context.Context, id int64) (*repository.Pi
 	var a repository.PickupPoint
 	err := r.db.Get(ctx, &a, "SELECT id,name,address, phone_number FROM pickup_points where id=$1", id)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, repository.ErrObjectNotFound
 		}
 		return nil, err
@@ -43,7 +44,7 @@ func (r *PickupPointRepo) Delete(ctx context.Context, id int64) error {
 	var a repository.PickupPoint
 	err := r.db.Get(ctx, &a, "DELETE FROM pickup_points where id=$1", id)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return repository.ErrObjectNotFound
 		}
 		return err
