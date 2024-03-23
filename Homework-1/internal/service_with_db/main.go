@@ -14,6 +14,7 @@ import (
 	"strconv"
 
 	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
 )
 
 const port = ":9000"
@@ -34,6 +35,20 @@ type addPickupPointResponse struct {
 	Name        string `json:"name"`
 	Address     string `json:"address"`
 	PhoneNumber string `json:"phone_number"`
+}
+
+type updatePickupPointRequest struct {
+	ID          int64  `json:"id"`
+	Name        string `json:"name"`
+	Address     string `json:"address"`
+	PhoneNumber string `json:"phone_number"`
+}
+
+func init() {
+	// loads values from .env into the system
+	if err := godotenv.Load(); err != nil {
+		log.Print("No .env file found")
+	}
 }
 
 func main() {
@@ -62,7 +77,7 @@ func createRouter(implemetation server1) *mux.Router {
 		case http.MethodPost:
 			implemetation.Create(w, req)
 		case http.MethodPut:
-			//implemetation.Update(w, req)
+			implemetation.Update(w, req)
 		default:
 			fmt.Println("error")
 		}
@@ -74,11 +89,22 @@ func createRouter(implemetation server1) *mux.Router {
 			fmt.Println("Getbyid")
 			implemetation.GetByID(w, req)
 		case http.MethodDelete:
-			//implemetation.Delete(w, req)
+			implemetation.Delete(w, req)
 		default:
 			fmt.Println("error")
 		}
 	})
+
+	router.HandleFunc("/pickup_point/list", func(w http.ResponseWriter, req *http.Request) {
+		switch req.Method {
+		case http.MethodGet:
+			fmt.Println("Getbyid")
+			implemetation.List(w, req)
+		default:
+			fmt.Println("error")
+		}
+	})
+
 	return router
 }
 
@@ -101,6 +127,41 @@ func (s *server1) Create(w http.ResponseWriter, req *http.Request) {
 		PhoneNumber: unm.PhoneNumber,
 	}
 	id, err := s.repo.Add(req.Context(), pickupPointRepo)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	resp := &addPickupPointResponse{
+		ID:          id,
+		Name:        pickupPointRepo.Name,
+		Address:     pickupPointRepo.Address,
+		PhoneNumber: pickupPointRepo.PhoneNumber,
+	}
+	pickupPointJson, _ := json.Marshal(resp)
+	w.Write(pickupPointJson)
+}
+
+func (s *server1) Update(w http.ResponseWriter, req *http.Request) {
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		fmt.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	var unm updatePickupPointRequest
+	if err = json.Unmarshal(body, &unm); err != nil {
+		fmt.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	id := unm.ID
+	pickupPointRepo := &repository.PickupPoint{
+		Name:        unm.Name,
+		Address:     unm.Address,
+		PhoneNumber: unm.PhoneNumber,
+	}
+	id, err = s.repo.Update(req.Context(), id, pickupPointRepo)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -142,4 +203,45 @@ func (s *server1) GetByID(w http.ResponseWriter, req *http.Request) {
 	}
 	pointJson, _ := json.Marshal(point)
 	w.Write(pointJson)
+}
+
+func (s *server1) Delete(w http.ResponseWriter, req *http.Request) {
+	key, ok := mux.Vars(req)[queryParamKey]
+	if !ok {
+		fmt.Println(ok)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	keyInt, err := strconv.ParseInt(key, 10, 64)
+	if err != nil {
+		fmt.Println(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	err = s.repo.Delete(req.Context(), keyInt)
+	if err != nil {
+		if errors.Is(err, repository.ErrObjectNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		fmt.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+}
+
+func (s *server1) List(w http.ResponseWriter, req *http.Request) {
+	points, err := s.repo.List(req.Context())
+	if err != nil {
+		if errors.Is(err, repository.ErrObjectNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		fmt.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	pointsJson, _ := json.Marshal(points)
+	w.Write(pointsJson)
 }

@@ -3,16 +3,8 @@ package db
 import (
 	"context"
 	"fmt"
-
 	"github.com/jackc/pgx/v4/pgxpool"
-)
-
-const (
-	host     = "localhost"
-	port     = 5432
-	user     = "test"
-	password = "test"
-	dbname   = "test"
+	"os"
 )
 
 func NewDb(ctx context.Context) (*Database, error) {
@@ -24,5 +16,25 @@ func NewDb(ctx context.Context) (*Database, error) {
 }
 
 func generateDsn() string {
-	return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
+	host, exists := os.LookupEnv("HOST")
+	if !exists {
+		fmt.Println("Не указан HOST")
+	}
+	port, exists := os.LookupEnv("PORT")
+	if !exists {
+		fmt.Println("Не указан PORT")
+	}
+	user, exists := os.LookupEnv("USER")
+	if !exists {
+		fmt.Println("Не указан USER")
+	}
+	password, exists := os.LookupEnv("PASSWORD")
+	if !exists {
+		fmt.Println("Не указан PASSWORD")
+	}
+	dbname, exists := os.LookupEnv("DBNAME")
+	if !exists {
+		fmt.Println("Не указано DBNAME")
+	}
+	return fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
 }
