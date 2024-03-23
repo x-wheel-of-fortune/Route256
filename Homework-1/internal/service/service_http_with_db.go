@@ -1,4 +1,4 @@
-package main
+package service
 
 import (
 	"Homework-1/internal/pkg/db"
@@ -9,14 +9,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/gorilla/mux"
 	"io"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
-
-	"github.com/gorilla/mux"
-	"github.com/joho/godotenv"
 )
 
 const (
@@ -50,22 +48,7 @@ type updatePickupPointRequest struct {
 	PhoneNumber string `json:"phone_number"`
 }
 
-func init() {
-	// loads values from .env into the system
-	if err := godotenv.Load(); err != nil {
-		log.Print("No .env file found")
-	}
-}
-
-func main() {
-	go func() {
-		secure()
-	}()
-
-	insecure()
-}
-
-func secure() {
+func Secure() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -85,7 +68,7 @@ func secure() {
 
 }
 
-func insecure() {
+func Insecure() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
