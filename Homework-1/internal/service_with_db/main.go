@@ -19,7 +19,11 @@ import (
 	"github.com/joho/godotenv"
 )
 
-const port = ":9000"
+const (
+	securePort   = ":9000"
+	insecurePort = ":9001"
+)
+
 const queryParamKey = "key"
 
 type server1 struct {
@@ -54,6 +58,14 @@ func init() {
 }
 
 func main() {
+	go func() {
+		secure()
+	}()
+
+	insecure()
+}
+
+func secure() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -65,11 +77,32 @@ func main() {
 
 	pickupPointsRepo := postgresql.NewPickupPoints(database)
 	implemetation := server1{repo: pickupPointsRepo}
-
-	http.Handle("/", authMiddleware(createRouter(implemetation)))
-	if err := http.ListenAndServe(port, nil); err != nil {
+	mx := http.NewServeMux()
+	mx.Handle("/", authMiddleware(createRouter(implemetation)))
+	if err := http.ListenAndServeTLS(securePort, "./server.crt", "./server.key", mx); err != nil {
 		log.Fatal(err)
 	}
+
+}
+
+func insecure() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	database, err := db.NewDb(ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer database.GetPool(ctx).Close()
+
+	pickupPointsRepo := postgresql.NewPickupPoints(database)
+	implemetation := server1{repo: pickupPointsRepo}
+	mx := http.NewServeMux()
+	mx.Handle("/", authMiddleware(createRouter(implemetation)))
+	if err := http.ListenAndServe(insecurePort, mx); err != nil {
+		log.Fatal(err)
+	}
+
 }
 
 func createRouter(implemetation server1) *mux.Router {
@@ -200,8 +233,13 @@ func (s *server1) Update(w http.ResponseWriter, req *http.Request) {
 		Address:     unm.Address,
 		PhoneNumber: unm.PhoneNumber,
 	}
-	id, err = s.repo.Update(req.Context(), id, pickupPointRepo)
+	err = s.repo.Update(req.Context(), id, pickupPointRepo)
 	if err != nil {
+		if errors.Is(err, repository.ErrObjectNotFound) {
+			log.Println("Could not find object with id =", id)
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return

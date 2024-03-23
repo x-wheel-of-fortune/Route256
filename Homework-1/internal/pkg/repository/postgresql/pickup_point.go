@@ -35,12 +35,17 @@ func (r *PickupPointRepo) GetByID(ctx context.Context, id int64) (*repository.Pi
 	return &a, nil
 }
 
-func (r *PickupPointRepo) Update(ctx context.Context, id int64, pickup_point *repository.PickupPoint) (int64, error) {
-	err := r.db.ExecQueryRow(ctx, `UPDATE pickup_points SET name=$1, address=$2, phone_number=$3 WHERE id=$4 RETURNING id;`, pickup_point.Name, pickup_point.Address, pickup_point.PhoneNumber, id).Scan(&id)
+func (r *PickupPointRepo) Update(ctx context.Context, id int64, pickup_point *repository.PickupPoint) error {
+	_, err := r.GetByID(ctx, id)
 	if err != nil {
-		return -1, err
+		return err
 	}
-	return id, err
+
+	err = r.db.ExecQueryRow(ctx, `UPDATE pickup_points SET name=$1, address=$2, phone_number=$3 WHERE id=$4 RETURNING id;`, pickup_point.Name, pickup_point.Address, pickup_point.PhoneNumber, id).Scan(&id)
+	if err != nil {
+		return err
+	}
+	return err
 }
 
 func (r *PickupPointRepo) Delete(ctx context.Context, id int64) error {
