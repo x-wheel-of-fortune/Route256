@@ -3,6 +3,7 @@ package main
 import (
 	"Homework-1/internal/cli"
 	"Homework-1/internal/service"
+	"Homework-1/internal/service/packaging"
 	"Homework-1/internal/storage"
 	"fmt"
 	"log"
@@ -24,7 +25,14 @@ func main() {
 		log.Println("не удалось подключиться к хранилищу")
 		return
 	}
-	serv := service.New(&stor)
+
+	packagingVariants := map[string]packaging.PackagingVariant{
+		packaging.BagPackagingType:  packaging.BagPackaging{},
+		packaging.BoxPackagingType:  packaging.BoxPackaging{},
+		packaging.FilmPackagingType: packaging.FilmPackaging{},
+	}
+
+	serv := service.New(&stor, packagingVariants)
 	cli := cli.New(&serv)
 
 	switch command {

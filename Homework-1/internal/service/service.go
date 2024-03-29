@@ -2,6 +2,7 @@ package service
 
 import (
 	"Homework-1/internal/model"
+	"Homework-1/internal/service/packaging"
 	storage2 "Homework-1/internal/storage"
 	"encoding/json"
 	"errors"
@@ -16,11 +17,23 @@ type storage interface {
 }
 
 type Service struct {
-	storage storage
+	storage           storage
+	packagingVariants map[string]packaging.PackagingVariant
 }
 
-func New(s storage) Service {
-	return Service{storage: s}
+func New(s storage, pkgVar map[string]packaging.PackagingVariant) Service {
+	return Service{
+		storage:           s,
+		packagingVariants: pkgVar,
+	}
+}
+
+func (s *Service) processPackaging(order model.OrderInput) (model.OrderInput, error) {
+	order, err := s.packagingVariants[order.Packaging].ProcessPackaging(order)
+	if err != nil {
+		return model.OrderInput{}, err
+	}
+	return order, nil
 }
 
 // Create ...
@@ -42,6 +55,10 @@ func (s Service) Create(orderID int, customerID int, expireDateStr string, weigh
 	}
 	if packaging == "" {
 		return errors.New("не указана форма упаковки заказа")
+	}
+	_, exists := s.packagingVariants[packaging]
+	if !exists {
+		return errors.New("некорректная форма упаковки заказа")
 	}
 	expireDate, err := time.Parse("2006-1-2", expireDateStr)
 	if err != nil {
@@ -65,6 +82,11 @@ func (s Service) Create(orderID int, customerID int, expireDateStr string, weigh
 		Weight:     weight,
 		Price:      price,
 		Packaging:  packaging,
+	}
+
+	newOrder, err = s.processPackaging(newOrder)
+	if err != nil {
+		return err
 	}
 
 	return s.storage.Create(newOrder)
