@@ -24,7 +24,7 @@ func New(s storage) Service {
 }
 
 // Create ...
-func (s Service) Create(orderID int, customerID int, expireDateStr string) error {
+func (s Service) Create(orderID int, customerID int, expireDateStr string, weight float64, price int, packaging string) error {
 	if orderID == 0 {
 		return errors.New("не указан id заказа")
 	}
@@ -33,6 +33,15 @@ func (s Service) Create(orderID int, customerID int, expireDateStr string) error
 	}
 	if expireDateStr == "" {
 		return errors.New("не указан срок хранения заказа")
+	}
+	if weight == 0 {
+		return errors.New("не указан вес зкаказа")
+	}
+	if price == 0.0 {
+		return errors.New("не указана стоимость заказа")
+	}
+	if packaging == "" {
+		return errors.New("не указана форма упаковки заказа")
 	}
 	expireDate, err := time.Parse("2006-1-2", expireDateStr)
 	if err != nil {
@@ -53,6 +62,9 @@ func (s Service) Create(orderID int, customerID int, expireDateStr string) error
 		ID:         orderID,
 		CustomerID: customerID,
 		ExpireDate: expireDate,
+		Weight:     weight,
+		Price:      price,
+		Packaging:  packaging,
 	}
 
 	return s.storage.Create(newOrder)
@@ -198,6 +210,9 @@ func (s Service) List(customerId int, limit int, onlyNotFinished bool) ([]model.
 				DateFinished:       order.DateFinished,
 				IsReturnedByClient: order.IsReturnedByClient,
 				IsDeleted:          order.IsDeleted,
+				Weight:             order.Weight,
+				Price:              order.Price,
+				Packaging:          order.Packaging,
 			})
 
 			if limit > 0 && len(customer_orders) == limit {
@@ -223,6 +238,9 @@ func (s Service) Returns(resultsPerPage int) (string, error) {
 				DateFinished:       order.DateFinished,
 				IsReturnedByClient: order.IsReturnedByClient,
 				IsDeleted:          order.IsDeleted,
+				Weight:             order.Weight,
+				Price:              order.Price,
+				Packaging:          order.Packaging,
 			})
 		}
 	}

@@ -70,6 +70,9 @@ func (s *Storage) Create(input model.OrderInput) error {
 		ID:         input.ID,
 		CustomerID: input.CustomerID,
 		ExpireDate: input.ExpireDate,
+		Weight:     input.Weight,
+		Price:      input.Price,
+		Packaging:  input.Packaging,
 	}
 	s.orders = append(s.orders, newOrder)
 	err := s.SaveChanges()

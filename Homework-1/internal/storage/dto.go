@@ -10,4 +10,7 @@ type OrderDTO struct {
 	DateFinished       time.Time `json:"date_finished"`
 	IsReturnedByClient bool      `json:"is_returned_by_client"`
 	IsDeleted          bool      `json:"is_deleted"`
+	Weight             float64   `json:"weight"`
+	Price              int       `json:"price"`
+	Packaging          string    `json:"packaging"`
 }
