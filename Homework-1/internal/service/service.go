@@ -18,10 +18,10 @@ type storage interface {
 
 type Service struct {
 	storage           storage
-	packagingVariants map[string]packaging.PackagingVariant
+	packagingVariants map[model.PackagingType]packaging.PackagingVariant
 }
 
-func New(s storage, pkgVar map[string]packaging.PackagingVariant) Service {
+func New(s storage, pkgVar map[model.PackagingType]packaging.PackagingVariant) Service {
 	return Service{
 		storage:           s,
 		packagingVariants: pkgVar,
@@ -29,7 +29,7 @@ func New(s storage, pkgVar map[string]packaging.PackagingVariant) Service {
 }
 
 func (s *Service) processPackaging(order model.OrderInput) (model.OrderInput, error) {
-	order, err := s.packagingVariants[order.Packaging].ProcessPackaging(order)
+	order, err := s.packagingVariants[model.PackagingType(order.Packaging)].ProcessPackaging(order)
 	if err != nil {
 		return model.OrderInput{}, err
 	}
@@ -37,7 +37,7 @@ func (s *Service) processPackaging(order model.OrderInput) (model.OrderInput, er
 }
 
 // Create ...
-func (s Service) Create(orderID int, customerID int, expireDateStr string, weight float64, price int, packaging string) error {
+func (s Service) Create(orderID int, customerID int, expireDateStr string, weight float64, price int, packagingType string) error {
 	if orderID == 0 {
 		return errors.New("не указан id заказа")
 	}
@@ -53,10 +53,10 @@ func (s Service) Create(orderID int, customerID int, expireDateStr string, weigh
 	if price == 0.0 {
 		return errors.New("не указана стоимость заказа")
 	}
-	if packaging == "" {
+	if packagingType == "" {
 		return errors.New("не указана форма упаковки заказа")
 	}
-	_, exists := s.packagingVariants[packaging]
+	_, exists := s.packagingVariants[model.PackagingType(packagingType)]
 	if !exists {
 		return errors.New("некорректная форма упаковки заказа")
 	}
@@ -81,7 +81,7 @@ func (s Service) Create(orderID int, customerID int, expireDateStr string, weigh
 		ExpireDate: expireDate,
 		Weight:     weight,
 		Price:      price,
-		Packaging:  packaging,
+		Packaging:  packagingType,
 	}
 
 	newOrder, err = s.processPackaging(newOrder)
@@ -234,7 +234,7 @@ func (s Service) List(customerId int, limit int, onlyNotFinished bool) ([]model.
 				IsDeleted:          order.IsDeleted,
 				Weight:             order.Weight,
 				Price:              order.Price,
-				Packaging:          order.Packaging,
+				Packaging:          model.PackagingType(order.Packaging),
 			})
 
 			if limit > 0 && len(customer_orders) == limit {
@@ -262,7 +262,7 @@ func (s Service) Returns(resultsPerPage int) (string, error) {
 				IsDeleted:          order.IsDeleted,
 				Weight:             order.Weight,
 				Price:              order.Price,
-				Packaging:          order.Packaging,
+				Packaging:          model.PackagingType(order.Packaging),
 			})
 		}
 	}

@@ -2,6 +2,7 @@ package main
 
 import (
 	"Homework-1/internal/cli"
+	"Homework-1/internal/model"
 	"Homework-1/internal/service"
 	"Homework-1/internal/service/packaging"
 	"Homework-1/internal/storage"
@@ -26,7 +27,7 @@ func main() {
 		return
 	}
 
-	packagingVariants := map[string]packaging.PackagingVariant{
+	packagingVariants := map[model.PackagingType]packaging.PackagingVariant{
 		packaging.BagPackagingType:  packaging.BagPackaging{},
 		packaging.BoxPackagingType:  packaging.BoxPackaging{},
 		packaging.FilmPackagingType: packaging.FilmPackaging{},
