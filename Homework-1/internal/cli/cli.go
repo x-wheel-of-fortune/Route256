@@ -2,6 +2,7 @@ package cli
 
 import (
 	"Homework-1/internal/interactive"
+	"Homework-1/internal/model"
 	"Homework-1/internal/service"
 	"context"
 	"flag"
@@ -32,7 +33,15 @@ func (c *CLI) HandleCreate(args []string) error {
 	if err != nil {
 		return err
 	}
-	err = c.service.Create(*createOrderID, *createCustomerID, *createExpireDateStr, *createWeight, *createPrice, *createPackaging)
+	input := model.OrderInput{
+		ID:            *createOrderID,
+		CustomerID:    *createCustomerID,
+		ExpireDateStr: *createExpireDateStr,
+		Weight:        *createWeight,
+		Price:         *createPrice,
+		Packaging:     *createPackaging,
+	}
+	err = c.service.Create(input)
 	if err != nil {
 		return err
 	}

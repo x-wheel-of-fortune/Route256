@@ -11,7 +11,7 @@ import (
 )
 
 type storage interface {
-	Create(order model.OrderInput) error
+	Create(order model.Order) error
 	GetAllOrders() []storage2.OrderDTO
 	SaveChanges() error
 }
@@ -28,62 +28,70 @@ func New(s storage, pkgVar map[model.PackagingType]packaging.PackagingVariant) S
 	}
 }
 
-func (s *Service) processPackaging(order model.OrderInput) (model.OrderInput, error) {
+func (s *Service) processPackaging(order model.Order) (model.Order, error) {
 	order, err := s.packagingVariants[model.PackagingType(order.Packaging)].ProcessPackaging(order)
 	if err != nil {
-		return model.OrderInput{}, err
+		return model.Order{}, err
 	}
 	return order, nil
 }
 
-// Create ...
-func (s Service) Create(orderID int, customerID int, expireDateStr string, weight float64, price int, packagingType string) error {
-	if orderID == 0 {
-		return errors.New("не указан id заказа")
+func (s Service) validateOrderInput(input model.OrderInput) (model.Order, error) {
+	if input.ID == 0 {
+		return model.Order{}, errors.New("не указан id заказа")
 	}
-	if customerID == 0 {
-		return errors.New("не указан id получателя")
+	if input.CustomerID == 0 {
+		return model.Order{}, errors.New("не указан id получателя")
 	}
-	if expireDateStr == "" {
-		return errors.New("не указан срок хранения заказа")
+	if input.ExpireDateStr == "" {
+		return model.Order{}, errors.New("не указан срок хранения заказа")
 	}
-	if weight == 0 {
-		return errors.New("не указан вес зкаказа")
+	if input.Weight == 0 {
+		return model.Order{}, errors.New("не указан вес зкаказа")
 	}
-	if price == 0.0 {
-		return errors.New("не указана стоимость заказа")
+	if input.Price == 0.0 {
+		return model.Order{}, errors.New("не указана стоимость заказа")
 	}
-	if packagingType == "" {
-		return errors.New("не указана форма упаковки заказа")
+	if input.Packaging == "" {
+		return model.Order{}, errors.New("не указана форма упаковки заказа")
 	}
-	_, exists := s.packagingVariants[model.PackagingType(packagingType)]
+	_, exists := s.packagingVariants[model.PackagingType(input.Packaging)]
 	if !exists {
-		return errors.New("некорректная форма упаковки заказа")
+		return model.Order{}, errors.New("некорректная форма упаковки заказа")
 	}
-	expireDate, err := time.Parse("2006-1-2", expireDateStr)
+	expireDate, err := time.Parse("2006-1-2", input.ExpireDateStr)
 	if err != nil {
-		return err
+		return model.Order{}, err
 	}
 	if expireDate.Before(time.Now()) {
-		return errors.New("срок хранения товара находится в прошлом")
+		return model.Order{}, errors.New("срок хранения товара находится в прошлом")
 	}
 
 	orders := s.storage.GetAllOrders()
 	for _, order := range orders {
-		if orderID == order.ID {
-			return errors.New("заказ с этим id уже есть в базе")
+		if input.ID == order.ID {
+			return model.Order{}, errors.New("заказ с этим id уже есть в базе")
 		}
 	}
 
-	newOrder := model.OrderInput{
-		ID:         orderID,
-		CustomerID: customerID,
+	newOrder := model.Order{
+		ID:         input.ID,
+		CustomerID: input.CustomerID,
 		ExpireDate: expireDate,
-		Weight:     weight,
-		Price:      price,
-		Packaging:  packagingType,
+		Weight:     input.Weight,
+		Price:      input.Price,
+		Packaging:  model.PackagingType(input.Packaging),
 	}
 
+	return newOrder, nil
+}
+
+// Create ...
+func (s Service) Create(input model.OrderInput) error {
+	newOrder, err := s.validateOrderInput(input)
+	if err != nil {
+		return err
+	}
 	newOrder, err = s.processPackaging(newOrder)
 	if err != nil {
 		return err

@@ -9,5 +9,5 @@ const (
 )
 
 type PackagingVariant interface {
-	ProcessPackaging(order model.OrderInput) (model.OrderInput, error)
+	ProcessPackaging(order model.Order) (model.Order, error)
 }

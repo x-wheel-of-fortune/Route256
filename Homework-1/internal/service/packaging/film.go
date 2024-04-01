@@ -7,7 +7,7 @@ import (
 type FilmPackaging struct {
 }
 
-func (v FilmPackaging) ProcessPackaging(order model.OrderInput) (model.OrderInput, error) {
+func (v FilmPackaging) ProcessPackaging(order model.Order) (model.Order, error) {
 	order.Price += 1
 	return order, nil
 }

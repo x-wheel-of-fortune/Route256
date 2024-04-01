@@ -65,14 +65,14 @@ func (s *Storage) SaveChanges() error {
 }
 
 // Create creates order
-func (s *Storage) Create(input model.OrderInput) error {
+func (s *Storage) Create(order model.Order) error {
 	newOrder := OrderDTO{
-		ID:         input.ID,
-		CustomerID: input.CustomerID,
-		ExpireDate: input.ExpireDate,
-		Weight:     input.Weight,
-		Price:      input.Price,
-		Packaging:  input.Packaging,
+		ID:         order.ID,
+		CustomerID: order.CustomerID,
+		ExpireDate: order.ExpireDate,
+		Weight:     order.Weight,
+		Price:      order.Price,
+		Packaging:  order.Packaging,
 	}
 	s.orders = append(s.orders, newOrder)
 	err := s.SaveChanges()
