@@ -29,10 +29,16 @@ func New(s storage, pkgVar map[model.PackagingType]packaging.PackagingVariant) S
 }
 
 func (s *Service) processPackaging(order model.Order) (model.Order, error) {
-	order, err := s.packagingVariants[model.PackagingType(order.Packaging)].ProcessPackaging(order)
+	v := s.packagingVariants[order.Packaging]
+	err := v.ValidateWeight(order.Weight)
 	if err != nil {
 		return model.Order{}, err
 	}
+	packagingExpense, err := v.CalculatePackagingExpense(order)
+	if err != nil {
+		return model.Order{}, err
+	}
+	order.Price += packagingExpense
 	return order, nil
 }
 

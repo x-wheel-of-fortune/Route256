@@ -9,7 +9,8 @@ const (
 )
 
 type PackagingVariant interface {
-	ProcessPackaging(order model.Order) (model.Order, error)
 	GetMaxWeight() float64
 	GetPrice() int
+	ValidateWeight(weight float64) error
+	CalculatePackagingExpense(order model.Order) (int, error)
 }
