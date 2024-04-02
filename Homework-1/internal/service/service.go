@@ -2,6 +2,7 @@ package service
 
 import (
 	"Homework-1/internal/model"
+	"Homework-1/internal/service/packaging"
 	storage2 "Homework-1/internal/storage"
 	"encoding/json"
 	"errors"
@@ -10,49 +11,96 @@ import (
 )
 
 type storage interface {
-	Create(order model.OrderInput) error
+	Create(order model.Order) error
 	GetAllOrders() []storage2.OrderDTO
 	SaveChanges() error
 }
 
 type Service struct {
-	storage storage
+	storage           storage
+	packagingVariants map[model.PackagingType]packaging.PackagingVariant
 }
 
-func New(s storage) Service {
-	return Service{storage: s}
+func New(s storage, pkgVar map[model.PackagingType]packaging.PackagingVariant) Service {
+	return Service{
+		storage:           s,
+		packagingVariants: pkgVar,
+	}
 }
 
-// Create ...
-func (s Service) Create(orderID int, customerID int, expireDateStr string) error {
-	if orderID == 0 {
-		return errors.New("не указан id заказа")
-	}
-	if customerID == 0 {
-		return errors.New("не указан id получателя")
-	}
-	if expireDateStr == "" {
-		return errors.New("не указан срок хранения заказа")
-	}
-	expireDate, err := time.Parse("2006-1-2", expireDateStr)
+func (s *Service) processPackaging(order model.Order) (model.Order, error) {
+	v := s.packagingVariants[order.Packaging]
+	err := v.ValidateWeight(order.Weight)
 	if err != nil {
-		return err
+		return model.Order{}, err
+	}
+	packagingExpense, err := v.CalculatePackagingExpense(order)
+	if err != nil {
+		return model.Order{}, err
+	}
+	order.Price += packagingExpense
+	return order, nil
+}
+
+func (s Service) validateOrderInput(input model.OrderInput) (model.Order, error) {
+	if input.ID == 0 {
+		return model.Order{}, errors.New("не указан id заказа")
+	}
+	if input.CustomerID == 0 {
+		return model.Order{}, errors.New("не указан id получателя")
+	}
+	if input.ExpireDateStr == "" {
+		return model.Order{}, errors.New("не указан срок хранения заказа")
+	}
+	if input.Weight == 0 {
+		return model.Order{}, errors.New("не указан вес зкаказа")
+	}
+	if input.Price == 0.0 {
+		return model.Order{}, errors.New("не указана стоимость заказа")
+	}
+	if input.Packaging == "" {
+		return model.Order{}, errors.New("не указана форма упаковки заказа")
+	}
+	_, exists := s.packagingVariants[model.PackagingType(input.Packaging)]
+	if !exists {
+		return model.Order{}, errors.New("некорректная форма упаковки заказа")
+	}
+	expireDate, err := time.Parse("2006-1-2", input.ExpireDateStr)
+	if err != nil {
+		return model.Order{}, err
 	}
 	if expireDate.Before(time.Now()) {
-		return errors.New("срок хранения товара находится в прошлом")
+		return model.Order{}, errors.New("срок хранения товара находится в прошлом")
 	}
 
 	orders := s.storage.GetAllOrders()
 	for _, order := range orders {
-		if orderID == order.ID {
-			return errors.New("заказ с этим id уже есть в базе")
+		if input.ID == order.ID {
+			return model.Order{}, errors.New("заказ с этим id уже есть в базе")
 		}
 	}
 
-	newOrder := model.OrderInput{
-		ID:         orderID,
-		CustomerID: customerID,
+	newOrder := model.Order{
+		ID:         input.ID,
+		CustomerID: input.CustomerID,
 		ExpireDate: expireDate,
+		Weight:     input.Weight,
+		Price:      input.Price,
+		Packaging:  model.PackagingType(input.Packaging),
+	}
+
+	return newOrder, nil
+}
+
+// Create ...
+func (s Service) Create(input model.OrderInput) error {
+	newOrder, err := s.validateOrderInput(input)
+	if err != nil {
+		return err
+	}
+	newOrder, err = s.processPackaging(newOrder)
+	if err != nil {
+		return err
 	}
 
 	return s.storage.Create(newOrder)
@@ -198,6 +246,9 @@ func (s Service) List(customerId int, limit int, onlyNotFinished bool) ([]model.
 				DateFinished:       order.DateFinished,
 				IsReturnedByClient: order.IsReturnedByClient,
 				IsDeleted:          order.IsDeleted,
+				Weight:             order.Weight,
+				Price:              order.Price,
+				Packaging:          model.PackagingType(order.Packaging),
 			})
 
 			if limit > 0 && len(customer_orders) == limit {
@@ -223,6 +274,9 @@ func (s Service) Returns(resultsPerPage int) (string, error) {
 				DateFinished:       order.DateFinished,
 				IsReturnedByClient: order.IsReturnedByClient,
 				IsDeleted:          order.IsDeleted,
+				Weight:             order.Weight,
+				Price:              order.Price,
+				Packaging:          model.PackagingType(order.Packaging),
 			})
 		}
 	}

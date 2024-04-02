@@ -2,6 +2,7 @@ package cli
 
 import (
 	"Homework-1/internal/interactive"
+	"Homework-1/internal/model"
 	"Homework-1/internal/service"
 	"context"
 	"flag"
@@ -25,11 +26,22 @@ func (c *CLI) HandleCreate(args []string) error {
 	createOrderID := createCmd.Int("id", 0, "id принимаемого заказа")
 	createCustomerID := createCmd.Int("customer_id", 0, "id получателя заказа")
 	createExpireDateStr := createCmd.String("expire_date", "", "срок хранения заказа")
+	createWeight := createCmd.Float64("weight", 0.0, "вес заказа")
+	createPrice := createCmd.Int("price", 0, "стоимость заказа")
+	createPackaging := createCmd.String("packaging", "", "форма упаковки заказа")
 	err := createCmd.Parse(args)
 	if err != nil {
 		return err
 	}
-	err = c.service.Create(*createOrderID, *createCustomerID, *createExpireDateStr)
+	input := model.OrderInput{
+		ID:            *createOrderID,
+		CustomerID:    *createCustomerID,
+		ExpireDateStr: *createExpireDateStr,
+		Weight:        *createWeight,
+		Price:         *createPrice,
+		Packaging:     *createPackaging,
+	}
+	err = c.service.Create(input)
 	if err != nil {
 		return err
 	}
