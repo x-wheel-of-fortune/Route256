@@ -25,7 +25,7 @@ const (
 const queryParamKey = "key"
 
 type server1 struct {
-	repo *postgresql.PickupPointRepo
+	repo repository.PickupPointRepo
 }
 
 type addPickupPointRequest struct {
