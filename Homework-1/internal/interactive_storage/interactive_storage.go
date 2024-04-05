@@ -1,3 +1,5 @@
+//go:generate mockgen -source ./interactive_storage.go -destination=./mocks/interactive_storage.go -package=mock_interactive_storage
+
 package interactive_storage
 
 import (
@@ -6,6 +8,11 @@ import (
 	"fmt"
 	"sync"
 )
+
+type InteractiveStorage interface {
+	Add(newPoint model.PickupPoint) error
+	Get(id int) (model.PickupPoint, error)
+}
 
 type Storage struct {
 	points map[int]model.PickupPoint
