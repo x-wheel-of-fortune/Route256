@@ -6,15 +6,23 @@ INTERNAL_PKG_PATH=$(CURDIR)/internal/pkg
 MOCKGEN_TAG=1.2.0
 MIGRATION_FOLDER=$(INTERNAL_PKG_PATH)/db/migrations
 
+.PHONY: start-test-env ## Запуск тестового окружения при помощи docker-compose
+start-test-env:
+	docker-compose up -d
+
+.PHONY: stop-test-env
+stop-test-env:
+	docker-compose down
+
 .PHONY: migration-create
 migration-create:
 	goose -dir "$(MIGRATION_FOLDER)" create "$(name)" sql
 
-.PHONY: test-migration-up
+.PHONY: test-migration-up ## Запуск скрипта миграций
 test-migration-up:
 	goose -dir "$(MIGRATION_FOLDER)" postgres "$(POSTGRES_SETUP_TEST)" up
 
-.PHONY: test-migration-down
+.PHONY: test-migration-down ## Очистка БД от тестовых данных
 test-migration-down:
 	goose -dir "$(MIGRATION_FOLDER)" postgres "$(POSTGRES_SETUP_TEST)" down
 
@@ -29,10 +37,18 @@ endif
 	PATH="$(LOCAL_BIN):$$PATH" go generate -x -run=mockgen ./...
 
 .PHONY: gofmt
-gomft:
+gofmt:
 	goimports -l -w $(CURDIR)
 .test:
 	$(info Running tests...)
 	go test ./...
 
 test: .test ## запуск всех юнит тестов
+
+.itest:
+	$(info Running integration tests...)
+	go test -tags=integration ./tests/...
+
+itest: .itest ## запуск всех интеграционных тестов
+
+
