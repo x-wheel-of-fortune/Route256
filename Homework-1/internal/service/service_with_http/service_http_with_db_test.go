@@ -18,7 +18,7 @@ func Test_validateCreate(t *testing.T) {
 	)
 	t.Run("smoke test", func(t *testing.T) {
 		t.Parallel()
-		unm := addPickupPointRequest{
+		unm := AddPickupPointRequest{
 			Name:        "Name",
 			Address:     "Address",
 			PhoneNumber: "PhoneNumber",
@@ -31,7 +31,7 @@ func Test_validateCreate(t *testing.T) {
 
 	t.Run("empty name", func(t *testing.T) {
 		t.Parallel()
-		unm := addPickupPointRequest{
+		unm := AddPickupPointRequest{
 			Name:        "",
 			Address:     "Address",
 			PhoneNumber: "PhoneNumber",
@@ -44,7 +44,7 @@ func Test_validateCreate(t *testing.T) {
 
 	t.Run("empty address", func(t *testing.T) {
 		t.Parallel()
-		unm := addPickupPointRequest{
+		unm := AddPickupPointRequest{
 			Name:        "Name",
 			Address:     "",
 			PhoneNumber: "PhoneNumber",
@@ -57,7 +57,7 @@ func Test_validateCreate(t *testing.T) {
 
 	t.Run("empty phoneNumber", func(t *testing.T) {
 		t.Parallel()
-		unm := addPickupPointRequest{
+		unm := AddPickupPointRequest{
 			Name:        "Name",
 			Address:     "Address",
 			PhoneNumber: "",
@@ -73,7 +73,7 @@ func Test_create(t *testing.T) {
 	t.Parallel()
 	var (
 		ctx = context.Background()
-		unm = addPickupPointRequest{
+		unm = AddPickupPointRequest{
 			Name:        "Name",
 			Address:     "Address",
 			PhoneNumber: "PhoneNumber",
@@ -117,7 +117,7 @@ func Test_validateUpdate(t *testing.T) {
 	)
 	t.Run("smoke test", func(t *testing.T) {
 		t.Parallel()
-		unm := updatePickupPointRequest{
+		unm := UpdatePickupPointRequest{
 			ID:          1,
 			Name:        "Name",
 			Address:     "Address",
@@ -131,7 +131,7 @@ func Test_validateUpdate(t *testing.T) {
 
 	t.Run("empty id", func(t *testing.T) {
 		t.Parallel()
-		unm := updatePickupPointRequest{
+		unm := UpdatePickupPointRequest{
 			ID:          0,
 			Name:        "Name",
 			Address:     "Address",
@@ -145,7 +145,7 @@ func Test_validateUpdate(t *testing.T) {
 
 	t.Run("empty name", func(t *testing.T) {
 		t.Parallel()
-		unm := updatePickupPointRequest{
+		unm := UpdatePickupPointRequest{
 			ID:          1,
 			Name:        "",
 			Address:     "Address",
@@ -159,7 +159,7 @@ func Test_validateUpdate(t *testing.T) {
 
 	t.Run("empty address", func(t *testing.T) {
 		t.Parallel()
-		unm := updatePickupPointRequest{
+		unm := UpdatePickupPointRequest{
 			ID:          1,
 			Name:        "Name",
 			Address:     "",
@@ -173,7 +173,7 @@ func Test_validateUpdate(t *testing.T) {
 
 	t.Run("empty phoneNumber", func(t *testing.T) {
 		t.Parallel()
-		unm := updatePickupPointRequest{
+		unm := UpdatePickupPointRequest{
 			ID:          1,
 			Name:        "Name",
 			Address:     "Address",
@@ -190,7 +190,7 @@ func Test_update(t *testing.T) {
 	t.Parallel()
 	var (
 		ctx = context.Background()
-		unm = updatePickupPointRequest{
+		unm = UpdatePickupPointRequest{
 			ID:          1,
 			Name:        "Name",
 			Address:     "Address",

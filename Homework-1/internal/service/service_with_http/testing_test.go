@@ -8,14 +8,14 @@ import (
 
 type pickupPointsRepoFixtures struct {
 	ctrl             *gomock.Controller
-	srv              server1
+	srv              Server1
 	mockPickupPoints *mock_repository.MockPickupPointRepo
 }
 
 func setUp(t *testing.T) pickupPointsRepoFixtures {
 	ctrl := gomock.NewController(t)
 	mockPickupPoints := mock_repository.NewMockPickupPointRepo(ctrl)
-	srv := server1{mockPickupPoints}
+	srv := Server1{mockPickupPoints}
 	return pickupPointsRepoFixtures{
 		ctrl:             ctrl,
 		mockPickupPoints: mockPickupPoints,
