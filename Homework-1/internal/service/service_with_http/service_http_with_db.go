@@ -76,6 +76,7 @@ func Secure() {
 
 	broker, _ := os.LookupEnv("BROKER")
 	kafkaProducer, err := kafka.NewProducer([]string{broker})
+	defer kafkaProducer.Close()
 	sender := answer.NewKafkaSender(kafkaProducer, "info")
 
 	kafkaConsumer, err := kafka.NewConsumer([]string{broker})
@@ -87,7 +88,7 @@ func Secure() {
 				fmt.Println("Consumer error", err)
 			}
 
-			fmt.Println("Received Key: ", string(message.Key), " Value: ", pm)
+			//fmt.Println("Received Key: ", string(message.Key), " Value: ", pm)
 		},
 	}
 	infos := info.NewService(info.NewReceiver(kafkaConsumer, handlers))
@@ -116,6 +117,7 @@ func Insecure() {
 
 	broker, _ := os.LookupEnv("BROKER")
 	kafkaProducer, err := kafka.NewProducer([]string{broker})
+	defer kafkaProducer.Close()
 	sender := answer.NewKafkaSender(kafkaProducer, "info")
 
 	kafkaConsumer, err := kafka.NewConsumer([]string{broker})
@@ -127,7 +129,7 @@ func Insecure() {
 				fmt.Println("Consumer error", err)
 			}
 
-			fmt.Println("Received Key: ", string(message.Key), " Value: ", pm)
+			//fmt.Println("Received Key: ", string(message.Key), " Value: ", pm)
 		},
 	}
 	infos := info.NewService(info.NewReceiver(kafkaConsumer, handlers))

@@ -153,9 +153,14 @@ func AuthMiddleware(handler http.Handler, sender Sender) http.HandlerFunc {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
-			fmt.Printf("Method: %s, body: %+v\n", req.Method, unm)
+			//fmt.Printf("Method: %s, body: %+v\n", req.Method, unm)
 		} else if req.Method == http.MethodDelete {
-			fmt.Printf("Method: %s, to_be_deleted: %s\n", req.Method, req.URL)
+			sender.sendMessage(InfoMessage{
+				Timestamp: time.Now(),
+				Method:    req.Method,
+				Raw:       []byte(fmt.Sprintf("%s", req.URL)),
+			})
+			//fmt.Printf("Method: %s, to_be_deleted: %s\n", req.Method, req.URL)
 		}
 
 		handler.ServeHTTP(w, req)

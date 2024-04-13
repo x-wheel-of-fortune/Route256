@@ -14,8 +14,9 @@ func init() {
 }
 
 func main() {
-	go func() {
-		service_with_http.Secure()
-	}()
-	service_with_http.Insecure()
+	//go func() {
+	//	service_with_http.Secure()
+	//}()
+	//service_with_http.Insecure()
+	service_with_http.Secure()
 }

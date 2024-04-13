@@ -1,7 +1,9 @@
 package info
 
 import (
+	"Homework-1/internal/infrastructure/answer"
 	"Homework-1/internal/infrastructure/kafka"
+	"encoding/json"
 	"fmt"
 	"github.com/IBM/sarama"
 	"github.com/pkg/errors"
@@ -54,8 +56,12 @@ func (r *KafkaReceiver) Subscribe(topic string) error {
 		go func(pc sarama.PartitionConsumer, partition int32) {
 			for message := range pc.Messages() {
 				handler(message)
-				fmt.Println("Read Topic: ", topic, " Partition: ", partition, " Offset: ", message.Offset)
-				fmt.Println("Received Key: ", string(message.Key), " Value: ", string(message.Value))
+				//fmt.Println("Read Topic: ", topic, " Partition: ", partition, " Offset: ", message.Offset)
+				//fmt.Println("Received Key: ", string(message.Key), " Value: ", string(message.Value))
+				var unm answer.InfoMessage
+				json.Unmarshal(message.Value, &unm)
+				fmt.Printf("Datetime:%v\nMethod:%s\nRaw:%s\n\n", unm.Timestamp, unm.Method, string(unm.Raw))
+
 			}
 		}(pc, partition)
 	}
