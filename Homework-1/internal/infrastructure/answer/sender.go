@@ -2,22 +2,27 @@ package answer
 
 import (
 	"Homework-1/internal/infrastructure/kafka"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/IBM/sarama"
+	"io"
+	"log"
+	"net/http"
+	"os"
 	"time"
 )
 
 type Sender interface {
-	sendAsyncMessage(message infoMessage) error
-	SendMessage(message infoMessage) error
-	sendMessages(messages []infoMessage) error
+	sendAsyncMessage(message InfoMessage) error
+	sendMessage(message InfoMessage) error
+	sendMessages(messages []InfoMessage) error
 }
 
-type infoMessage struct {
+type InfoMessage struct {
 	Timestamp time.Time
 	Method    string
-	Raw       string
+	Raw       []byte
 }
 
 type KafkaSender struct {
@@ -32,7 +37,14 @@ func NewKafkaSender(producer *kafka.Producer, topic string) *KafkaSender {
 	}
 }
 
-func (s *KafkaSender) sendAsyncMessage(message infoMessage) error {
+type UpdatePickupPointRequest struct {
+	ID          int64  `json:"id"`
+	Name        string `json:"name"`
+	Address     string `json:"address"`
+	PhoneNumber string `json:"phone_number"`
+}
+
+func (s *KafkaSender) sendAsyncMessage(message InfoMessage) error {
 	kafkaMsg, err := s.buildMessage(message)
 	if err != nil {
 		fmt.Println("Send message marshal error", err)
@@ -45,7 +57,7 @@ func (s *KafkaSender) sendAsyncMessage(message infoMessage) error {
 	return nil
 }
 
-func (s *KafkaSender) sendMessage(message infoMessage) error {
+func (s *KafkaSender) sendMessage(message InfoMessage) error {
 	kafkaMsg, err := s.buildMessage(message)
 	if err != nil {
 		fmt.Println("Send message marshal error", err)
@@ -64,7 +76,7 @@ func (s *KafkaSender) sendMessage(message infoMessage) error {
 	return nil
 }
 
-func (s *KafkaSender) sendMessages(messages []infoMessage) error {
+func (s *KafkaSender) sendMessages(messages []InfoMessage) error {
 	var kafkaMsg []*sarama.ProducerMessage
 	var message *sarama.ProducerMessage
 	var err error
@@ -90,7 +102,7 @@ func (s *KafkaSender) sendMessages(messages []infoMessage) error {
 	return nil
 }
 
-func (s *KafkaSender) buildMessage(message infoMessage) (*sarama.ProducerMessage, error) {
+func (s *KafkaSender) buildMessage(message InfoMessage) (*sarama.ProducerMessage, error) {
 	msg, err := json.Marshal(message)
 
 	if err != nil {
@@ -110,4 +122,43 @@ func (s *KafkaSender) buildMessage(message infoMessage) (*sarama.ProducerMessage
 			},
 		},
 	}, nil
+}
+
+func AuthMiddleware(handler http.Handler, sender Sender) http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+
+		true_username, username_exists := os.LookupEnv("USER")
+		true_password, password_exists := os.LookupEnv("PASSWORD")
+		if username_exists && password_exists {
+			username, password, ok := req.BasicAuth()
+			if !ok || username != true_username || password != true_password {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+		}
+		if req.Method == http.MethodPost || req.Method == http.MethodPut {
+			body, err := io.ReadAll(req.Body)
+
+			sender.sendMessage(InfoMessage{
+				Timestamp: time.Now(),
+				Method:    req.Method,
+				Raw:       body,
+			})
+
+			req.Body.Close() //  must close
+			req.Body = io.NopCloser(bytes.NewBuffer(body))
+			var unm UpdatePickupPointRequest
+			if err = json.Unmarshal(body, &unm); err != nil {
+				log.Println(err)
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+			fmt.Printf("Method: %s, body: %+v\n", req.Method, unm)
+		} else if req.Method == http.MethodDelete {
+			fmt.Printf("Method: %s, to_be_deleted: %s\n", req.Method, req.URL)
+		}
+
+		handler.ServeHTTP(w, req)
+
+	}
 }

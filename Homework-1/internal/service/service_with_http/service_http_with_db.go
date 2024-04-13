@@ -7,7 +7,6 @@ import (
 	"Homework-1/internal/pkg/db"
 	"Homework-1/internal/pkg/repository"
 	"Homework-1/internal/pkg/repository/postgresql"
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -81,7 +80,7 @@ func Secure() {
 
 	kafkaConsumer, err := kafka.NewConsumer([]string{broker})
 	handlers := map[string]info.HandleFunc{
-		"payments": func(message *sarama.ConsumerMessage) {
+		"info": func(message *sarama.ConsumerMessage) {
 			pm := infoMessage{}
 			err = json.Unmarshal(message.Value, &pm)
 			if err != nil {
@@ -94,7 +93,7 @@ func Secure() {
 	infos := info.NewService(info.NewReceiver(kafkaConsumer, handlers))
 	infos.StartConsume("info")
 
-	mx.Handle("/", authMiddleware(createRouter(implemetation)))
+	mx.Handle("/", answer.AuthMiddleware(createRouter(implemetation), sender))
 	if err := http.ListenAndServeTLS(securePort, "./server.crt", "./server.key", mx); err != nil {
 		log.Fatal(err)
 	}
@@ -114,7 +113,27 @@ func Insecure() {
 	pickupPointsRepo := postgresql.NewPickupPoints(database)
 	implemetation := Server1{Repo: pickupPointsRepo}
 	mx := http.NewServeMux()
-	mx.Handle("/", authMiddleware(createRouter(implemetation)))
+
+	broker, _ := os.LookupEnv("BROKER")
+	kafkaProducer, err := kafka.NewProducer([]string{broker})
+	sender := answer.NewKafkaSender(kafkaProducer, "info")
+
+	kafkaConsumer, err := kafka.NewConsumer([]string{broker})
+	handlers := map[string]info.HandleFunc{
+		"info": func(message *sarama.ConsumerMessage) {
+			pm := infoMessage{}
+			err = json.Unmarshal(message.Value, &pm)
+			if err != nil {
+				fmt.Println("Consumer error", err)
+			}
+
+			fmt.Println("Received Key: ", string(message.Key), " Value: ", pm)
+		},
+	}
+	infos := info.NewService(info.NewReceiver(kafkaConsumer, handlers))
+	infos.StartConsume("info")
+
+	mx.Handle("/", answer.AuthMiddleware(createRouter(implemetation), sender))
 	if err := http.ListenAndServe(insecurePort, mx); err != nil {
 		log.Fatal(err)
 	}
@@ -376,36 +395,4 @@ func (s *Server1) list(ctx context.Context) ([]byte, int, error) {
 	}
 	pointsJson, _ := json.Marshal(points)
 	return pointsJson, http.StatusOK, nil
-}
-
-func authMiddleware(handler http.Handler) http.HandlerFunc {
-	return func(w http.ResponseWriter, req *http.Request) {
-
-		true_username, username_exists := os.LookupEnv("USER")
-		true_password, password_exists := os.LookupEnv("PASSWORD")
-		if username_exists && password_exists {
-			username, password, ok := req.BasicAuth()
-			if !ok || username != true_username || password != true_password {
-				w.WriteHeader(http.StatusUnauthorized)
-				return
-			}
-		}
-		if req.Method == http.MethodPost || req.Method == http.MethodPut {
-			body, err := io.ReadAll(req.Body)
-			req.Body.Close() //  must close
-			req.Body = io.NopCloser(bytes.NewBuffer(body))
-			var unm UpdatePickupPointRequest
-			if err = json.Unmarshal(body, &unm); err != nil {
-				log.Println(err)
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			}
-			fmt.Printf("Method: %s, body: %+v\n", req.Method, unm)
-		} else if req.Method == http.MethodDelete {
-			fmt.Printf("Method: %s, to_be_deleted: %s\n", req.Method, req.URL)
-		}
-
-		handler.ServeHTTP(w, req)
-
-	}
 }
