@@ -1,4 +1,4 @@
-package service
+package service_with_http
 
 import (
 	"Homework-1/internal/pkg/db"
@@ -24,11 +24,11 @@ const (
 
 const queryParamKey = "key"
 
-type server1 struct {
-	repo *postgresql.PickupPointRepo
+type Server1 struct {
+	Repo repository.PickupPointRepo
 }
 
-type addPickupPointRequest struct {
+type AddPickupPointRequest struct {
 	Name        string `json:"name"`
 	Address     string `json:"address"`
 	PhoneNumber string `json:"phone_number"`
@@ -41,7 +41,7 @@ type addPickupPointResponse struct {
 	PhoneNumber string `json:"phone_number"`
 }
 
-type updatePickupPointRequest struct {
+type UpdatePickupPointRequest struct {
 	ID          int64  `json:"id"`
 	Name        string `json:"name"`
 	Address     string `json:"address"`
@@ -59,7 +59,7 @@ func Secure() {
 	defer database.GetPool(ctx).Close()
 
 	pickupPointsRepo := postgresql.NewPickupPoints(database)
-	implemetation := server1{repo: pickupPointsRepo}
+	implemetation := Server1{Repo: pickupPointsRepo}
 	mx := http.NewServeMux()
 	mx.Handle("/", authMiddleware(createRouter(implemetation)))
 	if err := http.ListenAndServeTLS(securePort, "./server.crt", "./server.key", mx); err != nil {
@@ -79,7 +79,7 @@ func Insecure() {
 	defer database.GetPool(ctx).Close()
 
 	pickupPointsRepo := postgresql.NewPickupPoints(database)
-	implemetation := server1{repo: pickupPointsRepo}
+	implemetation := Server1{Repo: pickupPointsRepo}
 	mx := http.NewServeMux()
 	mx.Handle("/", authMiddleware(createRouter(implemetation)))
 	if err := http.ListenAndServe(insecurePort, mx); err != nil {
@@ -88,7 +88,7 @@ func Insecure() {
 
 }
 
-func createRouter(implemetation server1) *mux.Router {
+func createRouter(implemetation Server1) *mux.Router {
 	router := mux.NewRouter()
 	router.HandleFunc("/pickup_point", func(w http.ResponseWriter, req *http.Request) {
 		switch req.Method {
@@ -124,108 +124,128 @@ func createRouter(implemetation server1) *mux.Router {
 	return router
 }
 
-func (s *server1) Create(w http.ResponseWriter, req *http.Request) {
+func (s *Server1) Create(w http.ResponseWriter, req *http.Request) {
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	var unm addPickupPointRequest
+	var unm AddPickupPointRequest
 	if err = json.Unmarshal(body, &unm); err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	if unm.Name == "" {
-		log.Println("Name field is empty")
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	if unm.Address == "" {
-		log.Println("Address field is empty")
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	if unm.PhoneNumber == "" {
-		log.Println("PhoneNumber field is empty")
+
+	err = s.validateCreate(req.Context(), unm)
+	if err != nil {
+		log.Println(err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	pickupPointRepo := &repository.PickupPoint{
+	pickupPointJson, status, err := s.create(req.Context(), unm)
+	if err != nil {
+		log.Println(err)
+	}
+	w.WriteHeader(status)
+	w.Write(pickupPointJson)
+}
+
+func (s *Server1) validateCreate(ctx context.Context, unm AddPickupPointRequest) error {
+	if unm.Name == "" {
+		return errors.New("Name field is empty")
+	}
+	if unm.Address == "" {
+		return errors.New("Address field is empty")
+	}
+	if unm.PhoneNumber == "" {
+		return errors.New("PhoneNumber field is empty")
+	}
+	return nil
+}
+
+func (s *Server1) create(ctx context.Context, unm AddPickupPointRequest) ([]byte, int, error) {
+	pickupPoint := &repository.PickupPoint{
 		Name:        unm.Name,
 		Address:     unm.Address,
 		PhoneNumber: unm.PhoneNumber,
 	}
-	id, err := s.repo.Add(req.Context(), pickupPointRepo)
+	id, err := s.Repo.Add(ctx, pickupPoint)
 	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		return nil, http.StatusInternalServerError, err
 	}
 
-	resp := &addPickupPointResponse{
+	resp := addPickupPointResponse{
 		ID:          id,
-		Name:        pickupPointRepo.Name,
-		Address:     pickupPointRepo.Address,
-		PhoneNumber: pickupPointRepo.PhoneNumber,
+		Name:        pickupPoint.Name,
+		Address:     pickupPoint.Address,
+		PhoneNumber: pickupPoint.PhoneNumber,
 	}
 	pickupPointJson, _ := json.Marshal(resp)
-	w.Write(pickupPointJson)
+
+	return pickupPointJson, http.StatusOK, nil
 }
 
-func (s *server1) Update(w http.ResponseWriter, req *http.Request) {
+func (s *Server1) Update(w http.ResponseWriter, req *http.Request) {
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	var unm updatePickupPointRequest
+	var unm UpdatePickupPointRequest
 	if err = json.Unmarshal(body, &unm); err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	if unm.ID == 0 {
-		log.Println("ID field is empty")
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	if unm.Name == "" {
-		log.Println("Name field is empty")
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	if unm.Address == "" {
-		log.Println("Address field is empty")
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	if unm.PhoneNumber == "" {
-		log.Println("PhoneNumber field is empty")
+	err = s.validateUpdate(req.Context(), unm)
+	if err != nil {
+		log.Println(err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
+	pickupPointJson, status, err := s.update(req.Context(), unm)
+	if err != nil {
+		log.Println(err)
+	}
+	w.WriteHeader(status)
+	w.Write(pickupPointJson)
+}
+
+func (s *Server1) validateUpdate(ctx context.Context, unm UpdatePickupPointRequest) error {
+	if unm.ID == 0 {
+		return errors.New("ID field is empty")
+	}
+	if unm.Name == "" {
+		return errors.New("Name field is empty")
+	}
+	if unm.Address == "" {
+		return errors.New("Address field is empty")
+	}
+	if unm.PhoneNumber == "" {
+		return errors.New("PhoneNumber field is empty")
+	}
+	return nil
+}
+
+func (s *Server1) update(ctx context.Context, unm UpdatePickupPointRequest) ([]byte, int, error) {
 	id := unm.ID
 	pickupPointRepo := &repository.PickupPoint{
 		Name:        unm.Name,
 		Address:     unm.Address,
 		PhoneNumber: unm.PhoneNumber,
 	}
-	err = s.repo.Update(req.Context(), id, pickupPointRepo)
+	err := s.Repo.Update(ctx, id, pickupPointRepo)
 	if err != nil {
 		if errors.Is(err, repository.ErrObjectNotFound) {
-			log.Println("Could not find object with id =", id)
-			w.WriteHeader(http.StatusNotFound)
-			return
+			return nil, http.StatusNotFound, errors.New(fmt.Sprintf("Could not find object with id =%d", id))
 		}
-		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		return nil, http.StatusInternalServerError, err
 	}
 
 	resp := &addPickupPointResponse{
@@ -235,13 +255,14 @@ func (s *server1) Update(w http.ResponseWriter, req *http.Request) {
 		PhoneNumber: pickupPointRepo.PhoneNumber,
 	}
 	pickupPointJson, _ := json.Marshal(resp)
-	w.Write(pickupPointJson)
+
+	return pickupPointJson, http.StatusOK, nil
 }
 
-func (s *server1) GetByID(w http.ResponseWriter, req *http.Request) {
+func (s *Server1) GetByID(w http.ResponseWriter, req *http.Request) {
 	key, ok := mux.Vars(req)[queryParamKey]
 	if !ok {
-		fmt.Println(ok)
+		log.Println("could not parse object id")
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -252,25 +273,30 @@ func (s *server1) GetByID(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	point, err := s.repo.GetByID(req.Context(), keyInt)
+	pointJson, status, err := s.get(req.Context(), keyInt)
 	if err != nil {
-		if errors.Is(err, repository.ErrObjectNotFound) {
-			log.Println("Could not find object with id =", keyInt)
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
 		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
 	}
-	pointJson, _ := json.Marshal(point)
+	w.WriteHeader(status)
 	w.Write(pointJson)
 }
 
-func (s *server1) Delete(w http.ResponseWriter, req *http.Request) {
+func (s *Server1) get(ctx context.Context, key int64) ([]byte, int, error) {
+	point, err := s.Repo.GetByID(ctx, key)
+	if err != nil {
+		if errors.Is(err, repository.ErrObjectNotFound) {
+			return nil, http.StatusNotFound, errors.New(fmt.Sprintf("Could not find object with id =%d", key))
+		}
+		return nil, http.StatusInternalServerError, err
+	}
+	pointJson, _ := json.Marshal(point)
+	return pointJson, http.StatusOK, nil
+}
+
+func (s *Server1) Delete(w http.ResponseWriter, req *http.Request) {
 	key, ok := mux.Vars(req)[queryParamKey]
 	if !ok {
-		fmt.Println(ok)
+		log.Println("Could not parse object id")
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -281,28 +307,41 @@ func (s *server1) Delete(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	err = s.repo.Delete(req.Context(), keyInt)
+	status, err := s.delete(req.Context(), keyInt)
 	if err != nil {
-		if errors.Is(err, repository.ErrObjectNotFound) {
-			log.Println("Could not find object with id =", keyInt)
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
 		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
 	}
+	w.WriteHeader(status)
 }
 
-func (s *server1) List(w http.ResponseWriter, req *http.Request) {
-	points, err := s.repo.List(req.Context())
+func (s *Server1) delete(ctx context.Context, keyInt int64) (int, error) {
+	err := s.Repo.Delete(ctx, keyInt)
+	if err != nil {
+		if errors.Is(err, repository.ErrObjectNotFound) {
+			log.Println()
+			return http.StatusNotFound, errors.New(fmt.Sprintf("Could not find object with id =%d", keyInt))
+		}
+		return http.StatusInternalServerError, err
+	}
+	return http.StatusOK, nil
+}
+
+func (s *Server1) List(w http.ResponseWriter, req *http.Request) {
+	pointsJson, status, err := s.list(req.Context())
 	if err != nil {
 		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+	}
+	w.WriteHeader(status)
+	w.Write(pointsJson)
+}
+
+func (s *Server1) list(ctx context.Context) ([]byte, int, error) {
+	points, err := s.Repo.List(ctx)
+	if err != nil {
+		return nil, http.StatusInternalServerError, err
 	}
 	pointsJson, _ := json.Marshal(points)
-	w.Write(pointsJson)
+	return pointsJson, http.StatusOK, nil
 }
 
 func authMiddleware(handler http.Handler) http.HandlerFunc {
@@ -321,7 +360,7 @@ func authMiddleware(handler http.Handler) http.HandlerFunc {
 			body, err := io.ReadAll(req.Body)
 			req.Body.Close() //  must close
 			req.Body = io.NopCloser(bytes.NewBuffer(body))
-			var unm updatePickupPointRequest
+			var unm UpdatePickupPointRequest
 			if err = json.Unmarshal(body, &unm); err != nil {
 				log.Println(err)
 				w.WriteHeader(http.StatusBadRequest)

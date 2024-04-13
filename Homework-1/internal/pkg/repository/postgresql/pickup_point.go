@@ -10,10 +10,10 @@ import (
 )
 
 type PickupPointRepo struct {
-	db *db.Database
+	db db.DBops
 }
 
-func NewPickupPoints(database *db.Database) *PickupPointRepo {
+func NewPickupPoints(database db.DBops) *PickupPointRepo {
 	return &PickupPointRepo{db: database}
 }
 

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"Homework-1/internal/service"
+	"Homework-1/internal/service/service_with_http"
 	"github.com/joho/godotenv"
 	"log"
 )
@@ -15,7 +15,7 @@ func init() {
 
 func main() {
 	go func() {
-		service.Secure()
+		service_with_http.Secure()
 	}()
-	service.Insecure()
+	service_with_http.Insecure()
 }
