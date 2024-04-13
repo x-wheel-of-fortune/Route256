@@ -1,6 +1,9 @@
 package service_with_http
 
 import (
+	"Homework-1/internal/infrastructure/answer"
+	"Homework-1/internal/infrastructure/info"
+	"Homework-1/internal/infrastructure/kafka"
 	"Homework-1/internal/pkg/db"
 	"Homework-1/internal/pkg/repository"
 	"Homework-1/internal/pkg/repository/postgresql"
@@ -9,12 +12,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/IBM/sarama"
 	"github.com/gorilla/mux"
 	"io"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 )
 
 const (
@@ -25,7 +30,15 @@ const (
 const queryParamKey = "key"
 
 type Server1 struct {
-	Repo repository.PickupPointRepo
+	Repo     repository.PickupPointRepo
+	sender   answer.Sender
+	receiver info.Receiver
+}
+
+type infoMessage struct {
+	Timestamp time.Time
+	Method    string
+	Raw       string
 }
 
 type AddPickupPointRequest struct {
@@ -61,6 +74,26 @@ func Secure() {
 	pickupPointsRepo := postgresql.NewPickupPoints(database)
 	implemetation := Server1{Repo: pickupPointsRepo}
 	mx := http.NewServeMux()
+
+	broker, _ := os.LookupEnv("BROKER")
+	kafkaProducer, err := kafka.NewProducer([]string{broker})
+	sender := answer.NewKafkaSender(kafkaProducer, "info")
+
+	kafkaConsumer, err := kafka.NewConsumer([]string{broker})
+	handlers := map[string]info.HandleFunc{
+		"payments": func(message *sarama.ConsumerMessage) {
+			pm := infoMessage{}
+			err = json.Unmarshal(message.Value, &pm)
+			if err != nil {
+				fmt.Println("Consumer error", err)
+			}
+
+			fmt.Println("Received Key: ", string(message.Key), " Value: ", pm)
+		},
+	}
+	infos := info.NewService(info.NewReceiver(kafkaConsumer, handlers))
+	infos.StartConsume("info")
+
 	mx.Handle("/", authMiddleware(createRouter(implemetation)))
 	if err := http.ListenAndServeTLS(securePort, "./server.crt", "./server.key", mx); err != nil {
 		log.Fatal(err)
@@ -90,6 +123,7 @@ func Insecure() {
 
 func createRouter(implemetation Server1) *mux.Router {
 	router := mux.NewRouter()
+
 	router.HandleFunc("/pickup_point", func(w http.ResponseWriter, req *http.Request) {
 		switch req.Method {
 		case http.MethodPost:
