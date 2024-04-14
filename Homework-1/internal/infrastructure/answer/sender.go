@@ -14,9 +14,7 @@ import (
 )
 
 type Sender interface {
-	sendAsyncMessage(message InfoMessage) error
 	sendMessage(message InfoMessage) error
-	sendMessages(messages []InfoMessage) error
 }
 
 type InfoMessage struct {
@@ -44,19 +42,6 @@ type UpdatePickupPointRequest struct {
 	PhoneNumber string `json:"phone_number"`
 }
 
-func (s *KafkaSender) sendAsyncMessage(message InfoMessage) error {
-	kafkaMsg, err := s.buildMessage(message)
-	if err != nil {
-		fmt.Println("Send message marshal error", err)
-		return err
-	}
-
-	s.producer.SendAsyncMessage(kafkaMsg)
-
-	fmt.Println("Send async message with key:", kafkaMsg.Key)
-	return nil
-}
-
 func (s *KafkaSender) sendMessage(message InfoMessage) error {
 	kafkaMsg, err := s.buildMessage(message)
 	if err != nil {
@@ -73,32 +58,6 @@ func (s *KafkaSender) sendMessage(message InfoMessage) error {
 	}
 
 	//fmt.Println("Partition: ", partition, " Offset: ", offset, " AnswerID:", message.AnswerID)
-	return nil
-}
-
-func (s *KafkaSender) sendMessages(messages []InfoMessage) error {
-	var kafkaMsg []*sarama.ProducerMessage
-	var message *sarama.ProducerMessage
-	var err error
-
-	for _, m := range messages {
-		message, err = s.buildMessage(m)
-		kafkaMsg = append(kafkaMsg, message)
-
-		if err != nil {
-			fmt.Println("Send message marshal error", err)
-			return err
-		}
-	}
-
-	err = s.producer.SendSyncMessages(kafkaMsg)
-
-	if err != nil {
-		fmt.Println("Send message connector error", err)
-		return err
-	}
-
-	fmt.Println("Send messages count:", len(messages))
 	return nil
 }
 
@@ -136,7 +95,14 @@ func AuthMiddleware(handler http.Handler, sender Sender) http.HandlerFunc {
 				return
 			}
 		}
-		if req.Method == http.MethodPost || req.Method == http.MethodPut {
+		if req.Method == http.MethodDelete || req.Method == http.MethodGet {
+			sender.sendMessage(InfoMessage{
+				Timestamp: time.Now(),
+				Method:    req.Method,
+				Raw:       []byte(fmt.Sprintf("%s", req.URL)),
+			})
+			//fmt.Printf("Method: %s, to_be_deleted: %s\n", req.Method, req.URL)
+		} else {
 			body, err := io.ReadAll(req.Body)
 
 			sender.sendMessage(InfoMessage{
@@ -154,13 +120,6 @@ func AuthMiddleware(handler http.Handler, sender Sender) http.HandlerFunc {
 				return
 			}
 			//fmt.Printf("Method: %s, body: %+v\n", req.Method, unm)
-		} else if req.Method == http.MethodDelete {
-			sender.sendMessage(InfoMessage{
-				Timestamp: time.Now(),
-				Method:    req.Method,
-				Raw:       []byte(fmt.Sprintf("%s", req.URL)),
-			})
-			//fmt.Printf("Method: %s, to_be_deleted: %s\n", req.Method, req.URL)
 		}
 
 		handler.ServeHTTP(w, req)

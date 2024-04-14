@@ -29,9 +29,7 @@ const (
 const queryParamKey = "key"
 
 type Server1 struct {
-	Repo     repository.PickupPointRepo
-	sender   answer.Sender
-	receiver info.Receiver
+	Repo repository.PickupPointRepo
 }
 
 type infoMessage struct {

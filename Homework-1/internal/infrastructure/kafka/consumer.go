@@ -1,3 +1,5 @@
+//go:generate mockgen -source ./consumer.go -destination=./mocks/consumer.go -package=mock_consumer
+
 package kafka
 
 import (

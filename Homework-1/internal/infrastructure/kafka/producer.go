@@ -1,3 +1,5 @@
+//go:generate mockgen -source ./producer.go -destination=./mocks/producer.go -package=mock_producer
+
 package kafka
 
 import (
@@ -7,40 +9,8 @@ import (
 )
 
 type Producer struct {
-	brokers       []string
-	syncProducer  sarama.SyncProducer
-	asyncProducer sarama.AsyncProducer
-}
-
-func newAsyncProducer(brokers []string) (sarama.AsyncProducer, error) {
-	asyncProducerConfig := sarama.NewConfig()
-
-	asyncProducerConfig.Producer.Partitioner = sarama.NewRandomPartitioner
-	asyncProducerConfig.Producer.RequiredAcks = sarama.WaitForAll
-
-	asyncProducerConfig.Producer.Return.Successes = true
-	asyncProducerConfig.Producer.Return.Errors = true
-
-	asyncProducer, err := sarama.NewAsyncProducer(brokers, asyncProducerConfig)
-
-	if err != nil {
-		return nil, errors.Wrap(err, "error with async kafka-producer")
-	}
-
-	go func() {
-		// Error и Retry топики можно использовать при получении ошибки
-		for e := range asyncProducer.Errors() {
-			fmt.Println(e.Error())
-		}
-	}()
-
-	go func() {
-		for m := range asyncProducer.Successes() {
-			fmt.Println("Async success with key", m.Key)
-		}
-	}()
-
-	return asyncProducer, nil
+	brokers      []string
+	syncProducer sarama.SyncProducer
 }
 
 func newSyncProducer(brokers []string) (sarama.SyncProducer, error) {
@@ -99,15 +69,9 @@ func NewProducer(brokers []string) (*Producer, error) {
 		return nil, errors.Wrap(err, "error with sync kafka-producer")
 	}
 
-	asyncProducer, err := newAsyncProducer(brokers)
-	if err != nil {
-		return nil, errors.Wrap(err, "error with async kafka-producer")
-	}
-
 	producer := &Producer{
-		brokers:       brokers,
-		syncProducer:  syncProducer,
-		asyncProducer: asyncProducer,
+		brokers:      brokers,
+		syncProducer: syncProducer,
 	}
 
 	return producer, nil
@@ -126,18 +90,8 @@ func (k *Producer) SendSyncMessages(messages []*sarama.ProducerMessage) error {
 	return err
 }
 
-func (k *Producer) SendAsyncMessage(message *sarama.ProducerMessage) {
-	k.asyncProducer.Input() <- message
-}
-
 func (k *Producer) Close() error {
 	err := k.syncProducer.Close()
-	if err != nil {
-		return errors.Wrap(err, "kafka.Connector.Close")
-	}
-
-	// k.asyncProducer.AsyncClose() - не использовать в общем случае
-	err = k.asyncProducer.Close()
 	if err != nil {
 		return errors.Wrap(err, "kafka.Connector.Close")
 	}
