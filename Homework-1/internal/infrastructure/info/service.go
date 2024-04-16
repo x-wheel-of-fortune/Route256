@@ -5,7 +5,7 @@ import (
 )
 
 type Receiver interface {
-	Subscribe(topic string) error
+	Subscribe(topic string, infoChan chan<- string) error
 }
 
 type Service struct {
@@ -18,10 +18,10 @@ func NewService(receiver Receiver) *Service {
 	}
 }
 
-func (s *Service) StartConsume(topic string) {
-	err := s.receiver.Subscribe(topic)
+func (s *Service) StartConsume(topic string, infoChan chan<- string) {
+	err := s.receiver.Subscribe(topic, infoChan)
 
 	if err != nil {
-		fmt.Println("Subscribe error ", err)
+		infoChan <- fmt.Sprintf("Subscribe error ", err)
 	}
 }

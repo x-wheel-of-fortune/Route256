@@ -1,9 +1,6 @@
-//go:generate mockgen -source ./producer.go -destination=./mocks/producer.go -package=mock_producer
-
 package kafka
 
 import (
-	"fmt"
 	"github.com/IBM/sarama"
 	"github.com/pkg/errors"
 )
@@ -11,6 +8,7 @@ import (
 type Producer struct {
 	brokers      []string
 	syncProducer sarama.SyncProducer
+	sarama.MockProduceResponse
 }
 
 func newSyncProducer(brokers []string) (sarama.SyncProducer, error) {
@@ -79,15 +77,6 @@ func NewProducer(brokers []string) (*Producer, error) {
 
 func (k *Producer) SendSyncMessage(message *sarama.ProducerMessage) (partition int32, offset int64, err error) {
 	return k.syncProducer.SendMessage(message)
-}
-
-func (k *Producer) SendSyncMessages(messages []*sarama.ProducerMessage) error {
-	err := k.syncProducer.SendMessages(messages)
-	if err != nil {
-		fmt.Println("kafka.Connector.SendMessages error", err)
-	}
-
-	return err
 }
 
 func (k *Producer) Close() error {

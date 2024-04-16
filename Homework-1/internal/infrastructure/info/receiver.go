@@ -23,7 +23,7 @@ func NewReceiver(consumer *kafka.Consumer, handlers map[string]HandleFunc) *Kafk
 	}
 }
 
-func (r *KafkaReceiver) Subscribe(topic string) error {
+func (r *KafkaReceiver) Subscribe(topic string, infoChan chan<- string) error {
 	handler, ok := r.handlers[topic]
 
 	if !ok {
@@ -60,7 +60,8 @@ func (r *KafkaReceiver) Subscribe(topic string) error {
 				//fmt.Println("Received Key: ", string(message.Key), " Value: ", string(message.Value))
 				var unm answer.InfoMessage
 				json.Unmarshal(message.Value, &unm)
-				fmt.Printf("Datetime:%v\nMethod:%s\nRaw:%s\n\n", unm.Timestamp, unm.Method, string(unm.Raw))
+				//fmt.Printf("Datetime:%v\nMethod:%s\nRaw:%s\n\n", unm.Timestamp, unm.Method, string(unm.Raw))
+				infoChan <- fmt.Sprintf("Datetime:%v\nMethod:%s\nRaw:%s\n\n", unm.Timestamp, unm.Method, string(unm.Raw))
 
 			}
 		}(pc, partition)

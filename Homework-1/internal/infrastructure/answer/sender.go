@@ -14,7 +14,7 @@ import (
 )
 
 type Sender interface {
-	sendMessage(message InfoMessage) error
+	SendMessage(message InfoMessage) error
 }
 
 type InfoMessage struct {
@@ -42,7 +42,7 @@ type UpdatePickupPointRequest struct {
 	PhoneNumber string `json:"phone_number"`
 }
 
-func (s *KafkaSender) sendMessage(message InfoMessage) error {
+func (s *KafkaSender) SendMessage(message InfoMessage) error {
 	kafkaMsg, err := s.buildMessage(message)
 	if err != nil {
 		fmt.Println("Send message marshal error", err)
@@ -96,16 +96,15 @@ func AuthMiddleware(handler http.Handler, sender Sender) http.HandlerFunc {
 			}
 		}
 		if req.Method == http.MethodDelete || req.Method == http.MethodGet {
-			sender.sendMessage(InfoMessage{
+			sender.SendMessage(InfoMessage{
 				Timestamp: time.Now(),
 				Method:    req.Method,
 				Raw:       []byte(fmt.Sprintf("%s", req.URL)),
 			})
-			//fmt.Printf("Method: %s, to_be_deleted: %s\n", req.Method, req.URL)
 		} else {
 			body, err := io.ReadAll(req.Body)
 
-			sender.sendMessage(InfoMessage{
+			sender.SendMessage(InfoMessage{
 				Timestamp: time.Now(),
 				Method:    req.Method,
 				Raw:       body,
@@ -119,7 +118,6 @@ func AuthMiddleware(handler http.Handler, sender Sender) http.HandlerFunc {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
-			//fmt.Printf("Method: %s, body: %+v\n", req.Method, unm)
 		}
 
 		handler.ServeHTTP(w, req)

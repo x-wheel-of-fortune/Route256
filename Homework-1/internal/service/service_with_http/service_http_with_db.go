@@ -18,7 +18,6 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"time"
 )
 
 const (
@@ -30,12 +29,6 @@ const queryParamKey = "key"
 
 type Server1 struct {
 	Repo repository.PickupPointRepo
-}
-
-type infoMessage struct {
-	Timestamp time.Time
-	Method    string
-	Raw       string
 }
 
 type AddPickupPointRequest struct {
@@ -56,6 +49,16 @@ type UpdatePickupPointRequest struct {
 	Name        string `json:"name"`
 	Address     string `json:"address"`
 	PhoneNumber string `json:"phone_number"`
+}
+
+func overseer(infoChan <-chan string) {
+	for {
+		info, ok := <-infoChan
+		if !ok {
+			return
+		}
+		log.Println(info)
+	}
 }
 
 func Secure() {
@@ -80,7 +83,7 @@ func Secure() {
 	kafkaConsumer, err := kafka.NewConsumer([]string{broker})
 	handlers := map[string]info.HandleFunc{
 		"info": func(message *sarama.ConsumerMessage) {
-			pm := infoMessage{}
+			pm := answer.InfoMessage{}
 			err = json.Unmarshal(message.Value, &pm)
 			if err != nil {
 				fmt.Println("Consumer error", err)
@@ -89,8 +92,11 @@ func Secure() {
 			//fmt.Println("Received Key: ", string(message.Key), " Value: ", pm)
 		},
 	}
+
+	infoChan := make(chan string)
+	go overseer(infoChan)
 	infos := info.NewService(info.NewReceiver(kafkaConsumer, handlers))
-	infos.StartConsume("info")
+	infos.StartConsume("info", infoChan)
 
 	mx.Handle("/", answer.AuthMiddleware(createRouter(implemetation), sender))
 	if err := http.ListenAndServeTLS(securePort, "./server.crt", "./server.key", mx); err != nil {
@@ -121,7 +127,7 @@ func Insecure() {
 	kafkaConsumer, err := kafka.NewConsumer([]string{broker})
 	handlers := map[string]info.HandleFunc{
 		"info": func(message *sarama.ConsumerMessage) {
-			pm := infoMessage{}
+			pm := answer.InfoMessage{}
 			err = json.Unmarshal(message.Value, &pm)
 			if err != nil {
 				fmt.Println("Consumer error", err)
@@ -130,8 +136,10 @@ func Insecure() {
 			//fmt.Println("Received Key: ", string(message.Key), " Value: ", pm)
 		},
 	}
+	infoChan := make(chan string)
+	go overseer(infoChan)
 	infos := info.NewService(info.NewReceiver(kafkaConsumer, handlers))
-	infos.StartConsume("info")
+	infos.StartConsume("info", infoChan)
 
 	mx.Handle("/", answer.AuthMiddleware(createRouter(implemetation), sender))
 	if err := http.ListenAndServe(insecurePort, mx); err != nil {
