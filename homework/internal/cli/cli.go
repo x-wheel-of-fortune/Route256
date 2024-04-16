@@ -4,13 +4,14 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"homework/internal/interactive"
-	"homework/internal/model"
-	"homework/internal/service"
 	"os"
 	"os/signal"
 	"strconv"
 	"syscall"
+
+	"homework/internal/interactive"
+	"homework/internal/model"
+	"homework/internal/service"
 )
 
 type CLI struct {

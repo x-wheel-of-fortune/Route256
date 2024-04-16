@@ -1,9 +1,11 @@
 package interactive
 
 import (
-	"github.com/golang/mock/gomock"
-	mock_interactive_storage "homework/internal/interactive_storage/mocks"
 	"testing"
+
+	"github.com/golang/mock/gomock"
+
+	mock_interactive_storage "homework/internal/interactive_storage/mocks"
 )
 
 type interactiveStorageFixtures struct {

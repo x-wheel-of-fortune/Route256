@@ -2,9 +2,11 @@ package interactive
 
 import (
 	"errors"
-	"github.com/stretchr/testify/assert"
-	"homework/internal/model"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"homework/internal/model"
 )
 
 func Test_Adder(t *testing.T) {

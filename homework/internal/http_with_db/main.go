@@ -1,9 +1,11 @@
 package main
 
 import (
-	"github.com/joho/godotenv"
-	"homework/internal/service/service_with_http"
 	"log"
+
+	"github.com/joho/godotenv"
+
+	"homework/internal/service/service_with_http"
 )
 
 func init() {

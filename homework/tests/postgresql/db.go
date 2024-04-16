@@ -3,9 +3,10 @@ package postgresql
 import (
 	"context"
 	"fmt"
-	"homework/internal/pkg/db"
 	"strings"
 	"testing"
+
+	"homework/internal/pkg/db"
 )
 
 type TDB struct {

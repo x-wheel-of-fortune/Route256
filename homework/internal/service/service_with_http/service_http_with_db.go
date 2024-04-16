@@ -5,19 +5,21 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"os"
+	"strconv"
+
 	"github.com/IBM/sarama"
 	"github.com/gorilla/mux"
+
 	"homework/internal/infrastructure/answer"
 	"homework/internal/infrastructure/info"
 	"homework/internal/infrastructure/kafka"
 	"homework/internal/pkg/db"
 	"homework/internal/pkg/repository"
 	"homework/internal/pkg/repository/postgresql"
-	"io"
-	"log"
-	"net/http"
-	"os"
-	"strconv"
 )
 
 const (

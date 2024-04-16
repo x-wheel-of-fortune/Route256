@@ -5,8 +5,9 @@ package interactive_storage
 import (
 	"errors"
 	"fmt"
-	"homework/internal/model"
 	"sync"
+
+	"homework/internal/model"
 )
 
 type InteractiveStorage interface {

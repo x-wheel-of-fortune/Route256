@@ -3,8 +3,9 @@ package db
 import (
 	"context"
 	"fmt"
-	"github.com/jackc/pgx/v4/pgxpool"
 	"os"
+
+	"github.com/jackc/pgx/v4/pgxpool"
 )
 
 func NewDb(ctx context.Context) (*Database, error) {

@@ -5,17 +5,19 @@ package tests
 
 import (
 	"encoding/json"
-	"github.com/IBM/sarama"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"homework/internal/infrastructure/answer"
-	"homework/internal/infrastructure/info"
-	"homework/internal/infrastructure/kafka"
 	"net/http"
 	"os"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/IBM/sarama"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"homework/internal/infrastructure/answer"
+	"homework/internal/infrastructure/info"
+	"homework/internal/infrastructure/kafka"
 )
 
 func cleanupTopic(topic string, broker string) error {

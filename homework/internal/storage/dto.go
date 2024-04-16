@@ -1,8 +1,9 @@
 package storage
 
 import (
-	"homework/internal/model"
 	"time"
+
+	"homework/internal/model"
 )
 
 type OrderDTO struct {

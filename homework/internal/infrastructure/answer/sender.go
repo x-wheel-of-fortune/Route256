@@ -4,13 +4,15 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/IBM/sarama"
-	"homework/internal/infrastructure/kafka"
 	"io"
 	"log"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/IBM/sarama"
+
+	"homework/internal/infrastructure/kafka"
 )
 
 type Sender interface {

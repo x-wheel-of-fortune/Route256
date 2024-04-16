@@ -3,10 +3,11 @@ package interactive
 import (
 	"context"
 	"fmt"
-	"homework/internal/interactive_storage"
-	"homework/internal/model"
 	"log"
 	"time"
+
+	"homework/internal/interactive_storage"
+	"homework/internal/model"
 )
 
 func Adder(addChanel chan model.PickupPoint, stor interactive_storage.InteractiveStorage, infoChannel chan string) {

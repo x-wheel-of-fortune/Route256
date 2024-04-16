@@ -2,13 +2,14 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"os"
+
 	"homework/internal/cli"
 	"homework/internal/model"
 	"homework/internal/service"
 	"homework/internal/service/packaging"
 	"homework/internal/storage"
-	"log"
-	"os"
 )
 
 func main() {

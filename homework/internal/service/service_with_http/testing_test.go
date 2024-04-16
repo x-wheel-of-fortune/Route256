@@ -1,9 +1,11 @@
 package service_with_http
 
 import (
-	"github.com/golang/mock/gomock"
-	mock_repository "homework/internal/pkg/repository/mocks"
 	"testing"
+
+	"github.com/golang/mock/gomock"
+
+	mock_repository "homework/internal/pkg/repository/mocks"
 )
 
 type pickupPointsRepoFixtures struct {

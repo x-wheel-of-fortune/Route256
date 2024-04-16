@@ -3,12 +3,14 @@ package service_with_http
 import (
 	"context"
 	"errors"
+	"net/http"
+	"testing"
+
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
 	"homework/internal/pkg/repository"
-	"net/http"
-	"testing"
 )
 
 func Test_validateCreate(t *testing.T) {

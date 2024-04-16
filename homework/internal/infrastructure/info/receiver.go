@@ -3,8 +3,10 @@ package info
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/IBM/sarama"
 	"github.com/pkg/errors"
+
 	"homework/internal/infrastructure/answer"
 	"homework/internal/infrastructure/kafka"
 )

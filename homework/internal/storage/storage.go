@@ -3,9 +3,10 @@ package storage
 import (
 	"bufio"
 	"encoding/json"
-	"homework/internal/model"
 	"io"
 	"os"
+
+	"homework/internal/model"
 )
 
 const storageName = "storage"

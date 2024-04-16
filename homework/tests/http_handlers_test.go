@@ -6,16 +6,17 @@ package tests
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/gorilla/mux"
-	"homework/internal/pkg/repository/postgresql"
-	"homework/internal/service/service_with_http"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"homework/internal/pkg/repository/postgresql"
+	"homework/internal/service/service_with_http"
 )
 
 func TestCreate(t *testing.T) {

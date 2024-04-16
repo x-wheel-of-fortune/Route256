@@ -4,9 +4,11 @@
 package tests
 
 import (
-	"github.com/joho/godotenv"
-	"homework/tests/postgresql"
 	"log"
+
+	"github.com/joho/godotenv"
+
+	"homework/tests/postgresql"
 )
 
 var (
