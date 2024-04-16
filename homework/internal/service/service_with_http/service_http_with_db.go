@@ -88,10 +88,8 @@ func Secure() {
 			pm := answer.InfoMessage{}
 			err = json.Unmarshal(message.Value, &pm)
 			if err != nil {
-				fmt.Println("Consumer error", err)
+				log.Printf("Consumer error: %v", err)
 			}
-
-			//fmt.Println("Received Key: ", string(message.Key), " Value: ", pm)
 		},
 	}
 
@@ -132,10 +130,8 @@ func Insecure() {
 			pm := answer.InfoMessage{}
 			err = json.Unmarshal(message.Value, &pm)
 			if err != nil {
-				fmt.Println("Consumer error", err)
+				log.Printf("Consumer error: %v", err)
 			}
-
-			//fmt.Println("Received Key: ", string(message.Key), " Value: ", pm)
 		},
 	}
 	infoChan := make(chan string)
@@ -160,7 +156,7 @@ func createRouter(implemetation Server1) *mux.Router {
 		case http.MethodPut:
 			implemetation.Update(w, req)
 		default:
-			fmt.Println("This route does not support", req.Method, "method.")
+			log.Println("This route does not support", req.Method, "method.")
 		}
 	})
 
@@ -171,7 +167,7 @@ func createRouter(implemetation Server1) *mux.Router {
 		case http.MethodDelete:
 			implemetation.Delete(w, req)
 		default:
-			fmt.Println("This route does not support", req.Method, "method.")
+			log.Println("This route does not support", req.Method, "method.")
 		}
 	})
 
@@ -180,7 +176,7 @@ func createRouter(implemetation Server1) *mux.Router {
 		case http.MethodGet:
 			implemetation.List(w, req)
 		default:
-			fmt.Println("This route does not support", req.Method, "method.")
+			log.Println("This route does not support", req.Method, "method.")
 		}
 	})
 

@@ -20,10 +20,8 @@ func Adder(addChanel chan model.PickupPoint, stor interactive_storage.Interactiv
 		time.Sleep(5 * time.Second)
 		err := stor.Add(newPoint)
 		if err != nil {
-			//fmt.Println(err.Error())
 			infoChannel <- err.Error()
 		} else {
-			//fmt.Println(fmt.Sprintf("ПВЗ с id=%d успешно добавлен в базу", newPoint.ID))
 			infoChannel <- fmt.Sprintf("ПВЗ с id=%d успешно добавлен в базу", newPoint.ID)
 		}
 		infoChannel <- fmt.Sprintf("Adder закончил добавление ПВЗ с id=%d в базу", newPoint.ID)
@@ -40,12 +38,8 @@ func Reader(readChanel chan int, stor interactive_storage.InteractiveStorage, in
 		time.Sleep(2 * time.Second)
 		point, err := stor.Get(id)
 		if err != nil {
-			//infoChannel <- err.Error()
-			//fmt.Println(err.Error())
 			infoChannel <- err.Error()
 		} else {
-			//fmt.Printf("Информация о ПВЗ c id=%d: ", id)
-			//fmt.Printf("%+v\n", point)
 			infoChannel <- fmt.Sprintf("%+v\n", point)
 		}
 		infoChannel <- fmt.Sprintf("Reader закончил чтение ПВЗ с id=%d", id)
@@ -84,13 +78,10 @@ func Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		default:
-			//fmt.Println("\nВведите команду")
-			//fmt.Println("1 - Добавить ПВЗ")
-			//fmt.Println("2 - Узнать информацию о ПВЗ")
 			var command int
 			_, err := fmt.Scanf("%d", &command)
 			if err != nil {
-				//fmt.Println(err)
+				log.Println(err)
 			}
 			switch command {
 			case 1:

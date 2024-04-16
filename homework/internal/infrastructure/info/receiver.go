@@ -32,20 +32,12 @@ func (r *KafkaReceiver) Subscribe(topic string, infoChan chan<- string) error {
 		return errors.New("can not find handler")
 	}
 
-	// получаем все партиции топика
 	partitionList, err := r.consumer.SingleConsumer.Partitions(topic)
 
 	if err != nil {
 		return err
 	}
 
-	/*
-	   sarama.OffsetOldest - перечитываем каждый раз все
-	   sarama.OffsetNewest - перечитываем только новые
-
-	   Можем задавать отдельно на каждую партицию
-	   Также можем сходить в отдельное хранилище и взять оттуда сохраненный offset
-	*/
 	initialOffset := sarama.OffsetOldest
 
 	for _, partition := range partitionList {
@@ -58,11 +50,8 @@ func (r *KafkaReceiver) Subscribe(topic string, infoChan chan<- string) error {
 		go func(pc sarama.PartitionConsumer, partition int32) {
 			for message := range pc.Messages() {
 				handler(message)
-				//fmt.Println("Read Topic: ", topic, " Partition: ", partition, " Offset: ", message.Offset)
-				//fmt.Println("Received Key: ", string(message.Key), " Value: ", string(message.Value))
 				var unm answer.InfoMessage
 				json.Unmarshal(message.Value, &unm)
-				//fmt.Printf("Datetime:%v\nMethod:%s\nRaw:%s\n\n", unm.Timestamp, unm.Method, string(unm.Raw))
 				infoChan <- fmt.Sprintf("Datetime:%v\nMethod:%s\nRaw:%s\n\n", unm.Timestamp, unm.Method, string(unm.Raw))
 
 			}

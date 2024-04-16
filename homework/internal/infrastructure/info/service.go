@@ -22,6 +22,6 @@ func (s *Service) StartConsume(topic string, infoChan chan<- string) {
 	err := s.receiver.Subscribe(topic, infoChan)
 
 	if err != nil {
-		infoChan <- fmt.Sprintf("Subscribe error ", err)
+		infoChan <- fmt.Sprintf("Subscribe error: %v", err)
 	}
 }

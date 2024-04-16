@@ -47,7 +47,7 @@ type UpdatePickupPointRequest struct {
 func (s *KafkaSender) SendMessage(message InfoMessage) error {
 	kafkaMsg, err := s.buildMessage(message)
 	if err != nil {
-		fmt.Println("Send message marshal error", err)
+		log.Printf("Send message marshal error: %v", err)
 		return err
 	}
 
@@ -55,11 +55,10 @@ func (s *KafkaSender) SendMessage(message InfoMessage) error {
 	_, _, err = s.producer.SendSyncMessage(kafkaMsg)
 
 	if err != nil {
-		fmt.Println("Send message connector error", err)
+		log.Printf("Send message connector error: %v", err)
 		return err
 	}
 
-	//fmt.Println("Partition: ", partition, " Offset: ", offset, " AnswerID:", message.AnswerID)
 	return nil
 }
 
@@ -67,7 +66,7 @@ func (s *KafkaSender) buildMessage(message InfoMessage) (*sarama.ProducerMessage
 	msg, err := json.Marshal(message)
 
 	if err != nil {
-		fmt.Println("Send message marshal error", err)
+		log.Printf("Send message marshal error: %v", err)
 		return nil, err
 	}
 
