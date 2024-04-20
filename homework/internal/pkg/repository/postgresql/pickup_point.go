@@ -3,7 +3,6 @@ package postgresql
 import (
 	"context"
 	"errors"
-	"homework/internal/pkg/repository/in_memory_cache"
 	"log"
 	"time"
 
@@ -11,6 +10,7 @@ import (
 
 	"homework/internal/pkg/db"
 	"homework/internal/pkg/repository"
+	"homework/internal/pkg/repository/in_memory_cache"
 )
 
 type InMemoryCache interface {

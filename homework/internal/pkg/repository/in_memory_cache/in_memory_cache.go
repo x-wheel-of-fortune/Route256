@@ -1,9 +1,11 @@
 package in_memory_cache
 
 import (
-	"github.com/pkg/errors"
-	"homework/internal/pkg/repository"
 	"sync"
+
+	"github.com/pkg/errors"
+
+	"homework/internal/pkg/repository"
 )
 
 const CacheCapacity = 100

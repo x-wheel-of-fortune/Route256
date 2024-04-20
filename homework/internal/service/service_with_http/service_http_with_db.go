@@ -5,20 +5,21 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/IBM/sarama"
-	"github.com/gorilla/mux"
-	"homework/internal/pkg/repository/myRedis"
 	"io"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
 
+	"github.com/IBM/sarama"
+	"github.com/gorilla/mux"
+
 	"homework/internal/infrastructure/answer"
 	"homework/internal/infrastructure/info"
 	"homework/internal/infrastructure/kafka"
 	"homework/internal/pkg/db"
 	"homework/internal/pkg/repository"
+	"homework/internal/pkg/repository/myRedis"
 	"homework/internal/pkg/repository/postgresql"
 )
 
