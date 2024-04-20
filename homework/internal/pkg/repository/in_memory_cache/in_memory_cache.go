@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-const CacheCapacity = 2
+const CacheCapacity = 100
 
 type InMemoryCache struct {
 	PickupPoints map[int64]*Node

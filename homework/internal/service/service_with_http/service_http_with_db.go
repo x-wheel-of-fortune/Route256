@@ -5,14 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/IBM/sarama"
+	"github.com/gorilla/mux"
+	"homework/internal/pkg/repository/myRedis"
 	"io"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
-
-	"github.com/IBM/sarama"
-	"github.com/gorilla/mux"
 
 	"homework/internal/infrastructure/answer"
 	"homework/internal/infrastructure/info"
@@ -29,8 +29,14 @@ const (
 
 const queryParamKey = "key"
 
+type Redis interface {
+	Set(ctx context.Context, key string, value interface{}) error
+	Get(ctx context.Context, key string) (string, error)
+}
+
 type Server1 struct {
-	Repo repository.PickupPointRepo
+	Repo  repository.PickupPointRepo
+	Redis Redis
 }
 
 type AddPickupPointRequest struct {
@@ -74,7 +80,7 @@ func Secure() {
 	defer database.GetPool(ctx).Close()
 
 	pickupPointsRepo := postgresql.NewPickupPoints(database)
-	implemetation := Server1{Repo: pickupPointsRepo}
+	implemetation := Server1{Repo: pickupPointsRepo, Redis: myRedis.NewRedis()}
 	mx := http.NewServeMux()
 
 	broker, _ := os.LookupEnv("BROKER")
@@ -315,6 +321,7 @@ func (s *Server1) update(ctx context.Context, unm UpdatePickupPointRequest) ([]b
 		PhoneNumber: pickupPointRepo.PhoneNumber,
 	}
 	pickupPointJson, _ := json.Marshal(resp)
+	s.Redis.Set(ctx, strconv.Itoa(int(id)), pickupPointJson)
 
 	return pickupPointJson, http.StatusOK, nil
 }
@@ -342,6 +349,10 @@ func (s *Server1) GetByID(w http.ResponseWriter, req *http.Request) {
 }
 
 func (s *Server1) get(ctx context.Context, key int64) ([]byte, int, error) {
+	pointJson, err := s.Redis.Get(ctx, strconv.Itoa(int(key)))
+	if err == nil {
+		return []byte(pointJson), http.StatusOK, nil
+	}
 	point, err := s.Repo.GetByID(ctx, key)
 	if err != nil {
 		if errors.Is(err, repository.ErrObjectNotFound) {
@@ -349,8 +360,9 @@ func (s *Server1) get(ctx context.Context, key int64) ([]byte, int, error) {
 		}
 		return nil, http.StatusInternalServerError, err
 	}
-	pointJson, _ := json.Marshal(point)
-	return pointJson, http.StatusOK, nil
+	newPointJson, _ := json.Marshal(point)
+	s.Redis.Set(ctx, strconv.Itoa(int(key)), newPointJson)
+	return newPointJson, http.StatusOK, nil
 }
 
 func (s *Server1) Delete(w http.ResponseWriter, req *http.Request) {
