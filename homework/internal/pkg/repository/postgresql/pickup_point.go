@@ -3,6 +3,9 @@ package postgresql
 import (
 	"context"
 	"errors"
+	"homework/internal/pkg/repository/in_memory_cache"
+	"log"
+	"time"
 
 	"github.com/jackc/pgx/v4"
 
@@ -10,12 +13,21 @@ import (
 	"homework/internal/pkg/repository"
 )
 
+type InMemoryCache interface {
+	GetPickupPoints(id int64) (repository.PickupPoint, error)
+	SetPickupPoints(id int64, pickupPoint repository.PickupPoint) error
+}
+
 type PickupPointRepo struct {
-	db db.DBops
+	db      db.DBops
+	IMCache InMemoryCache
 }
 
 func NewPickupPoints(database db.DBops) *PickupPointRepo {
-	return &PickupPointRepo{db: database}
+	return &PickupPointRepo{
+		db:      database,
+		IMCache: in_memory_cache.NewInMemoryCache(),
+	}
 }
 
 func (r *PickupPointRepo) Add(ctx context.Context, pickup_point *repository.PickupPoint) (int64, error) {
@@ -42,6 +54,14 @@ func (r *PickupPointRepo) Add(ctx context.Context, pickup_point *repository.Pick
 }
 
 func (r *PickupPointRepo) GetByID(ctx context.Context, id int64) (*repository.PickupPoint, error) {
+	a, err := r.IMCache.GetPickupPoints(id)
+	if err == nil {
+		return &a, nil
+	}
+
+	// Для наглядности ускорения работы при кэшировании
+	time.Sleep(5 * time.Second)
+
 	tx, err := r.db.BeginTx(ctx, pgx.TxOptions{
 		IsoLevel:   pgx.ReadCommitted,
 		AccessMode: pgx.ReadOnly,
@@ -51,13 +71,16 @@ func (r *PickupPointRepo) GetByID(ctx context.Context, id int64) (*repository.Pi
 	}
 	defer tx.Rollback(ctx)
 
-	var a repository.PickupPoint
 	err = tx.QueryRow(ctx, "SELECT id, name, address, phone_number FROM pickup_points WHERE id=$1", id).Scan(&a.ID, &a.Name, &a.Address, &a.PhoneNumber)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, repository.ErrObjectNotFound
 		}
 		return nil, err
+	}
+
+	if err := r.IMCache.SetPickupPoints(id, a); err != nil {
+		log.Println(err)
 	}
 
 	return &a, nil
@@ -86,6 +109,10 @@ func (r *PickupPointRepo) Update(ctx context.Context, id int64, pickup_point *re
 	err = r.db.Commit(ctx, tx)
 	if err != nil {
 		return err
+	}
+
+	if err := r.IMCache.SetPickupPoints(id, *pickup_point); err != nil {
+		log.Println(err)
 	}
 
 	return nil

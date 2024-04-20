@@ -295,6 +295,7 @@ func (s *Server1) validateUpdate(ctx context.Context, unm UpdatePickupPointReque
 func (s *Server1) update(ctx context.Context, unm UpdatePickupPointRequest) ([]byte, int, error) {
 	id := unm.ID
 	pickupPointRepo := &repository.PickupPoint{
+		ID:          int(id),
 		Name:        unm.Name,
 		Address:     unm.Address,
 		PhoneNumber: unm.PhoneNumber,
