@@ -286,7 +286,7 @@ func (s Service) Returns(resultsPerPage int) (string, error) {
 	count := 0
 	for _, order := range returned {
 		if count%resultsPerPage == 0 {
-			paginatedReturns += fmt.Sprintf("Страница %d\n", (count/resultsPerPage + 1))
+			paginatedReturns += fmt.Sprintf("Страница %d\n", count/resultsPerPage+1)
 		}
 		s := fmt.Sprintf("id заказа: %d, ", order.ID)
 		s += fmt.Sprintf("выдан, дата выдачи: %d-%d-%d", order.DateFinished.Year(), order.DateFinished.Month(), order.DateFinished.Day())

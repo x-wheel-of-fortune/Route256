@@ -36,3 +36,7 @@ func (r *Redis) Get(ctx context.Context, key string) (string, error) {
 	res := r.client.Get(ctx, key)
 	return res.Result()
 }
+
+func (r *Redis) Delete(ctx context.Context, key string) error {
+	return r.client.Del(ctx, key).Err()
+}

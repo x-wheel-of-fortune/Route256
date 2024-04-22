@@ -58,7 +58,7 @@ func (r *PickupPointRepo) GetByID(ctx context.Context, id int64) (*repository.Pi
 	if err == nil {
 		return &a, nil
 	}
-
+	log.Println(err)
 	// Для наглядности ускорения работы при кэшировании
 	time.Sleep(5 * time.Second)
 

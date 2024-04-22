@@ -33,6 +33,7 @@ const queryParamKey = "key"
 type Redis interface {
 	Set(ctx context.Context, key string, value interface{}) error
 	Get(ctx context.Context, key string) (string, error)
+	Delete(ctx context.Context, key string) error
 }
 
 type Server1 struct {
@@ -322,8 +323,15 @@ func (s *Server1) update(ctx context.Context, unm UpdatePickupPointRequest) ([]b
 		PhoneNumber: pickupPointRepo.PhoneNumber,
 	}
 	pickupPointJson, _ := json.Marshal(resp)
-	s.Redis.Set(ctx, strconv.Itoa(int(id)), pickupPointJson)
-
+	err = s.Redis.Set(ctx, strconv.Itoa(int(id)), pickupPointJson)
+	if err != nil {
+		log.Println("Redis write error:", err)
+		log.Println(fmt.Sprintf("Removing id=%d from Redis cache...", id))
+		err = s.Redis.Delete(ctx, strconv.Itoa(int(id)))
+		if err != nil {
+			log.Println("Redis delete error:", err)
+		}
+	}
 	return pickupPointJson, http.StatusOK, nil
 }
 
@@ -362,7 +370,15 @@ func (s *Server1) get(ctx context.Context, key int64) ([]byte, int, error) {
 		return nil, http.StatusInternalServerError, err
 	}
 	newPointJson, _ := json.Marshal(point)
-	s.Redis.Set(ctx, strconv.Itoa(int(key)), newPointJson)
+	err = s.Redis.Set(ctx, strconv.Itoa(int(key)), newPointJson)
+	if err != nil {
+		log.Println("Redis write error:", err)
+		log.Println(fmt.Sprintf("Removing id=%d from Redis cache...", key))
+		err = s.Redis.Delete(ctx, strconv.Itoa(int(key)))
+		if err != nil {
+			log.Println("Redis delete error:", err)
+		}
+	}
 	return newPointJson, http.StatusOK, nil
 }
 

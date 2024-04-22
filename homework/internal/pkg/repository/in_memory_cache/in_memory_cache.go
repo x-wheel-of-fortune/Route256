@@ -51,7 +51,7 @@ func (c *InMemoryCache) GetPickupPoints(id int64) (repository.PickupPoint, error
 	defer c.mx.RUnlock()
 	node_ptr, ok := c.PickupPoints[id]
 	if !ok {
-		return repository.PickupPoint{}, errors.New("cant find pickup point by id")
+		return repository.PickupPoint{}, errors.New("couldn't find pickup point id in inmemory cache")
 	}
 
 	c.LRU.get(node_ptr)
