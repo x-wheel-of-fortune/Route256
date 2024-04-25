@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package pickup_point;
+option go_package = "./;pb";
+
+service PickupPoints {
+  rpc AddPickupPoint (AddPickupPointRequest) returns (AddPickupPointResponse) {}
+}
+
+message AddPickupPointRequest {
+  message PickupPoint {
+    string name = 2;
+    string address = 3;
+    string phone_number = 4;
+  }
+
+  PickupPoint pickupPoint = 1;
+}
+
+message AddPickupPointResponse {
+  int64 id = 1;
+  string name = 2;
+  string address = 3;
+  string phone_number = 4;
+}
