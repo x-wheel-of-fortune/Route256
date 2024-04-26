@@ -10,7 +10,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -41,8 +40,8 @@ var (
 
 	// Create a customized counter metric.
 	customizedCounterMetric = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "GOHW_8",
-		Help: "Total number of RPCs handled on the server.",
+		Name: "added_pickup_point_count",
+		Help: "Total number of pickup points added.",
 	})
 )
 
@@ -89,20 +88,16 @@ func initProvider() (func(context.Context) error, error) {
 func init() {
 	// Register standard server metrics and customized metrics to registry.
 	reg.MustRegister(customizedCounterMetric)
+
+	// Load environment variables
+	if err := godotenv.Load(); err != nil {
+		log.Print("No .env file found")
+	}
 }
 
-func (s *Service) AddPickupPoint(ctx context.Context, req *pb.AddPickupPointRequest) (*pb.AddPickupPointResponse, error) {
-	commonAttrs := []attribute.KeyValue{
-		attribute.String("attrA", "chocolate"),
-		attribute.String("attrB", "raspberry"),
-		attribute.String("attrC", "vanilla"),
-	}
-
+func (s *Service) AddPickupPoint(ctx context.Context, req *pb.PickupPointRequest) (*pb.PickupPointResponse, error) {
 	// work begins
-	ctx, span := s.tracer.Start(
-		ctx,
-		"CollectorExporter-Example",
-		trace.WithAttributes(commonAttrs...))
+	span := trace.SpanFromContext(ctx)
 	defer span.End()
 	defer customizedCounterMetric.Add(1)
 
@@ -115,9 +110,11 @@ func (s *Service) AddPickupPoint(ctx context.Context, req *pb.AddPickupPointRequ
 	id, err := s.Repo.Add(ctx, pickupPoint)
 	if err != nil {
 		if errors.Is(err, repository.ErrObjectNotFound) {
+			log.Println(err)
 		}
+		log.Println(err)
 	}
-	resp := &pb.AddPickupPointResponse{
+	resp := &pb.PickupPointResponse{
 		Id:          id,
 		Name:        pickupPoint.Name,
 		Address:     pickupPoint.Address,
@@ -127,10 +124,55 @@ func (s *Service) AddPickupPoint(ctx context.Context, req *pb.AddPickupPointRequ
 	return resp, nil
 }
 
-func init() {
-	if err := godotenv.Load(); err != nil {
-		log.Print("No .env file found")
+func (s *Service) UpdatePickupPoint(ctx context.Context, req *pb.PickupPointRequest) (*pb.PickupPointResponse, error) {
+	// work begins
+	span := trace.SpanFromContext(ctx)
+	defer span.End()
+
+	pickupPoint := &repository.PickupPoint{
+		ID:          int(req.PickupPoint.Id),
+		Name:        req.PickupPoint.Name,
+		Address:     req.PickupPoint.Address,
+		PhoneNumber: req.PickupPoint.PhoneNumber,
 	}
+
+	err := s.Repo.Update(ctx, req.PickupPoint.Id, pickupPoint)
+	if err != nil {
+		if errors.Is(err, repository.ErrObjectNotFound) {
+			log.Println(err)
+		}
+		log.Println(err)
+	}
+	resp := &pb.PickupPointResponse{
+		Id:          req.PickupPoint.Id,
+		Name:        pickupPoint.Name,
+		Address:     pickupPoint.Address,
+		PhoneNumber: pickupPoint.PhoneNumber,
+	}
+
+	return resp, nil
+}
+
+func (s *Service) GetPickupPoint(ctx context.Context, req *pb.IdRequest) (*pb.PickupPointResponse, error) {
+	// work begins
+	span := trace.SpanFromContext(ctx)
+	defer span.End()
+
+	point, err := s.Repo.GetByID(ctx, req.Id)
+	if err != nil {
+		if errors.Is(err, repository.ErrObjectNotFound) {
+			log.Println(err)
+		}
+		log.Println(err)
+	}
+	resp := &pb.PickupPointResponse{
+		Id:          int64(point.ID),
+		Name:        point.Name,
+		Address:     point.Address,
+		PhoneNumber: point.PhoneNumber,
+	}
+
+	return resp, nil
 }
 
 func main() {

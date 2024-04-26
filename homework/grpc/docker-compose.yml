@@ -1,10 +1,20 @@
 version: "3.7"
 services:
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_DB: test
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+      PGPORT: 5431
+    ports:
+      - "5431:5431"
+
   app:
     build: .
     ports:
       - 9091:9091 # Prometheus exporter
-      - 9092:9092 # GRPC
+      - 9093:9093 # GRPC
 
   grafana:
     image: grafana/grafana:8.0.3
@@ -37,6 +47,11 @@ services:
       - ^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)
     ports:
       - 9100:9100
+
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
 
   jaeger:
     image: jaegertracing/all-in-one:latest

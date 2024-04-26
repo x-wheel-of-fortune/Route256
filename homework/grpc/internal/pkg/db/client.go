@@ -5,16 +5,24 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
 func NewDb(ctx context.Context) (*Database, error) {
-	pool, err := pgxpool.Connect(ctx, generateDsn())
-	if err != nil {
-		return nil, err
+	var err error
+	for i := 0; i < 5; i++ {
+		s := generateDsn()
+		pool, err := pgxpool.Connect(ctx, s)
+		if err != nil {
+			time.Sleep(2 * time.Second)
+			log.Printf("Failed to connect to database %s, %d/5\n", s, i+1)
+		} else {
+			return newDatabase(pool), nil
+		}
 	}
-	return newDatabase(pool), nil
+	return nil, err
 }
 
 func generateDsn() string {

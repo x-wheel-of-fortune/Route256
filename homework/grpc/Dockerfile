@@ -8,7 +8,7 @@ RUN go mod download
 
 COPY . .
 RUN go install .
-ENTRYPOINT /go/bin/GOHW-8
+ENTRYPOINT /go/bin/grpc
 
 EXPOSE 9091
 EXPOSE 9092

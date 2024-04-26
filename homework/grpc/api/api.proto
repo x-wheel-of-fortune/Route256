@@ -4,22 +4,37 @@ package pickup_point;
 option go_package = "./;pb";
 
 service PickupPoints {
-  rpc AddPickupPoint (AddPickupPointRequest) returns (AddPickupPointResponse) {}
+  rpc AddPickupPoint (PickupPointRequest) returns (PickupPointResponse) {}
+  rpc UpdatePickupPoint (PickupPointRequest) returns (PickupPointResponse) {}
+  rpc GetPickupPoint (IdRequest) returns (PickupPointResponse) {}
+  rpc DeletePickupPoint (IdRequest) returns (Empty) {}
+  rpc ListPickupPoint (Empty) returns (ListPickupPointResponse) {}
 }
 
-message AddPickupPointRequest {
-  message PickupPoint {
-    string name = 2;
-    string address = 3;
-    string phone_number = 4;
-  }
-
-  PickupPoint pickupPoint = 1;
-}
-
-message AddPickupPointResponse {
+message PickupPoint {
   int64 id = 1;
   string name = 2;
   string address = 3;
   string phone_number = 4;
 }
+
+message PickupPointRequest {
+  PickupPoint pickupPoint = 1;
+}
+
+message PickupPointResponse {
+  int64 id = 1;
+  string name = 2;
+  string address = 3;
+  string phone_number = 4;
+}
+
+message IdRequest {
+  int64 id = 1;
+}
+
+message ListPickupPointResponse {
+  repeated PickupPoint pickup_points = 1;
+}
+
+message Empty {}

@@ -1,3 +1,10 @@
+ifeq ($(POSTGRES_SETUP_TEST),)
+	POSTGRES_SETUP_TEST := user=test password=test dbname=test host=localhost port=5431 sslmode=disable
+endif
+
+INTERNAL_PKG_PATH=$(CURDIR)/internal/pkg
+MIGRATION_FOLDER=$(INTERNAL_PKG_PATH)/db/migrations
+
 .PHONY: up
 
 generate:
@@ -20,3 +27,11 @@ cleanup:
 		--remove-orphans \
 		--timeout 60; \
   	docker-compose rm -f
+
+.PHONY: test-migration-up ## Запуск скрипта миграций
+test-migration-up:
+	goose -dir "$(MIGRATION_FOLDER)" postgres "$(POSTGRES_SETUP_TEST)" up
+
+.PHONY: test-migration-down ## Очистка БД от тестовых данных
+test-migration-down:
+	goose -dir "$(MIGRATION_FOLDER)" postgres "$(POSTGRES_SETUP_TEST)" down
