@@ -17,6 +17,8 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"grpc/internal/pkg/db"
 	"grpc/internal/pkg/pb"
 	"grpc/internal/pkg/repository"
@@ -39,9 +41,24 @@ var (
 	reg = prometheus.NewRegistry()
 
 	// Create a customized counter metric.
-	customizedCounterMetric = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "added_pickup_point_count",
+	addedPointsMetric = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "added_count",
 		Help: "Total number of pickup points added.",
+	})
+
+	deletedPointsMetric = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "deleted_count",
+		Help: "Total number of pickup points deleted.",
+	})
+
+	internalErrorCountMetric = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "internal_error_count",
+		Help: "Total number of server internal errors.",
+	})
+
+	clientErrorCountMetric = prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "client_error_count",
+		Help: "Total number of errors caused by clients' input.",
 	})
 )
 
@@ -87,7 +104,7 @@ func initProvider() (func(context.Context) error, error) {
 
 func init() {
 	// Register standard server metrics and customized metrics to registry.
-	reg.MustRegister(customizedCounterMetric)
+	reg.MustRegister(addedPointsMetric, deletedPointsMetric, internalErrorCountMetric, clientErrorCountMetric)
 
 	// Load environment variables
 	if err := godotenv.Load(); err != nil {
@@ -98,20 +115,22 @@ func init() {
 func (s *Service) AddPickupPoint(ctx context.Context, req *pb.PickupPointRequest) (*pb.PickupPointResponse, error) {
 	span := trace.SpanFromContext(ctx)
 	defer span.End()
-	defer customizedCounterMetric.Add(1)
 
 	pickupPoint := &repository.PickupPoint{
 		Name:        req.PickupPoint.Name,
 		Address:     req.PickupPoint.Address,
 		PhoneNumber: req.PickupPoint.PhoneNumber,
 	}
+	err := s.validateAdd(ctx, pickupPoint)
+	if err != nil {
+		clientErrorCountMetric.Add(1)
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
 
 	id, err := s.Repo.Add(ctx, pickupPoint)
 	if err != nil {
-		if errors.Is(err, repository.ErrObjectNotFound) {
-			log.Println(err)
-		}
-		log.Println(err)
+		internalErrorCountMetric.Add(1)
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 	resp := &pb.PickupPointResponse{
 		Id:          id,
@@ -120,7 +139,21 @@ func (s *Service) AddPickupPoint(ctx context.Context, req *pb.PickupPointRequest
 		PhoneNumber: pickupPoint.PhoneNumber,
 	}
 
+	addedPointsMetric.Add(1)
 	return resp, nil
+}
+
+func (s *Service) validateAdd(ctx context.Context, pickupPoint *repository.PickupPoint) error {
+	if pickupPoint.Name == "" {
+		return errors.New("Name field is empty")
+	}
+	if pickupPoint.Address == "" {
+		return errors.New("Address field is empty")
+	}
+	if pickupPoint.PhoneNumber == "" {
+		return errors.New("PhoneNumber field is empty")
+	}
+	return nil
 }
 
 func (s *Service) UpdatePickupPoint(ctx context.Context, req *pb.PickupPointRequest) (*pb.PickupPointResponse, error) {
@@ -135,12 +168,20 @@ func (s *Service) UpdatePickupPoint(ctx context.Context, req *pb.PickupPointRequ
 		PhoneNumber: req.PickupPoint.PhoneNumber,
 	}
 
-	err := s.Repo.Update(ctx, req.PickupPoint.Id, pickupPoint)
+	err := s.validateUpdate(ctx, pickupPoint)
+	if err != nil {
+		clientErrorCountMetric.Add(1)
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	err = s.Repo.Update(ctx, req.PickupPoint.Id, pickupPoint)
 	if err != nil {
 		if errors.Is(err, repository.ErrObjectNotFound) {
-			log.Println(err)
+			clientErrorCountMetric.Add(1)
+			return nil, status.Error(codes.NotFound, err.Error())
 		}
-		log.Println(err)
+		internalErrorCountMetric.Add(1)
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 	resp := &pb.PickupPointResponse{
 		Id:          req.PickupPoint.Id,
@@ -152,14 +193,34 @@ func (s *Service) UpdatePickupPoint(ctx context.Context, req *pb.PickupPointRequ
 	return resp, nil
 }
 
+func (s *Service) validateUpdate(ctx context.Context, pickupPoint *repository.PickupPoint) error {
+	if pickupPoint.ID == 0 {
+		return errors.New("ID field is empty")
+	}
+	if pickupPoint.Name == "" {
+		return errors.New("Name field is empty")
+	}
+	if pickupPoint.Address == "" {
+		return errors.New("Address field is empty")
+	}
+	if pickupPoint.PhoneNumber == "" {
+		return errors.New("PhoneNumber field is empty")
+	}
+	return nil
+}
+
 func (s *Service) GetPickupPoint(ctx context.Context, req *pb.IdRequest) (*pb.PickupPointResponse, error) {
 	// work begins
 	span := trace.SpanFromContext(ctx)
 	defer span.End()
-
+	if req.Id == 0 {
+		clientErrorCountMetric.Add(1)
+		return nil, status.Error(codes.InvalidArgument, "id not specified")
+	}
 	point, err := s.Repo.GetByID(ctx, req.Id)
 	if err != nil {
-		return nil, err
+		internalErrorCountMetric.Add(1)
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 	resp := &pb.PickupPointResponse{
 		Id:          int64(point.ID),
@@ -175,10 +236,14 @@ func (s *Service) DeletePickupPoint(ctx context.Context, req *pb.IdRequest) (*pb
 	// work begins
 	span := trace.SpanFromContext(ctx)
 	defer span.End()
-
+	if req.Id == 0 {
+		clientErrorCountMetric.Add(1)
+		return nil, status.Error(codes.InvalidArgument, "id not specified")
+	}
 	err := s.Repo.Delete(ctx, req.Id)
 	if err != nil {
-		return &pb.Empty{}, err
+		internalErrorCountMetric.Add(1)
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 	return &pb.Empty{}, nil
 }
@@ -190,7 +255,8 @@ func (s *Service) ListPickupPoint(ctx context.Context, req *pb.Empty) (*pb.ListP
 
 	points, err := s.Repo.List(ctx)
 	if err != nil {
-		return nil, err
+		internalErrorCountMetric.Add(1)
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 	var pickupPoints []*pb.PickupPoint
 	for _, point := range *points {
