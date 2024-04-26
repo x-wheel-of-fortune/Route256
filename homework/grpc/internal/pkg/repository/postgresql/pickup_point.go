@@ -3,10 +3,8 @@ package postgresql
 import (
 	"context"
 	"errors"
-	"log"
-	"time"
-
 	"github.com/jackc/pgx/v4"
+	"log"
 
 	"grpc/internal/pkg/db"
 	"grpc/internal/pkg/repository"
@@ -54,14 +52,7 @@ func (r *PickupPointRepo) Add(ctx context.Context, pickup_point *repository.Pick
 }
 
 func (r *PickupPointRepo) GetByID(ctx context.Context, id int64) (*repository.PickupPoint, error) {
-	a, err := r.IMCache.GetPickupPoints(id)
-	if err == nil {
-		return &a, nil
-	}
-	log.Println(err)
-	// Для наглядности ускорения работы при кэшировании
-	time.Sleep(5 * time.Second)
-
+	var a repository.PickupPoint
 	tx, err := r.db.BeginTx(ctx, pgx.TxOptions{
 		IsoLevel:   pgx.ReadCommitted,
 		AccessMode: pgx.ReadOnly,
@@ -78,11 +69,6 @@ func (r *PickupPointRepo) GetByID(ctx context.Context, id int64) (*repository.Pi
 		}
 		return nil, err
 	}
-
-	if err := r.IMCache.SetPickupPoints(id, a); err != nil {
-		log.Println(err)
-	}
-
 	return &a, nil
 }
 

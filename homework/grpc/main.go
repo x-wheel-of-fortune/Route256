@@ -96,7 +96,6 @@ func init() {
 }
 
 func (s *Service) AddPickupPoint(ctx context.Context, req *pb.PickupPointRequest) (*pb.PickupPointResponse, error) {
-	// work begins
 	span := trace.SpanFromContext(ctx)
 	defer span.End()
 	defer customizedCounterMetric.Add(1)
@@ -160,10 +159,7 @@ func (s *Service) GetPickupPoint(ctx context.Context, req *pb.IdRequest) (*pb.Pi
 
 	point, err := s.Repo.GetByID(ctx, req.Id)
 	if err != nil {
-		if errors.Is(err, repository.ErrObjectNotFound) {
-			log.Println(err)
-		}
-		log.Println(err)
+		return nil, err
 	}
 	resp := &pb.PickupPointResponse{
 		Id:          int64(point.ID),
@@ -172,6 +168,40 @@ func (s *Service) GetPickupPoint(ctx context.Context, req *pb.IdRequest) (*pb.Pi
 		PhoneNumber: point.PhoneNumber,
 	}
 
+	return resp, nil
+}
+
+func (s *Service) DeletePickupPoint(ctx context.Context, req *pb.IdRequest) (*pb.Empty, error) {
+	// work begins
+	span := trace.SpanFromContext(ctx)
+	defer span.End()
+
+	err := s.Repo.Delete(ctx, req.Id)
+	if err != nil {
+		return &pb.Empty{}, err
+	}
+	return &pb.Empty{}, nil
+}
+
+func (s *Service) ListPickupPoint(ctx context.Context, req *pb.Empty) (*pb.ListPickupPointResponse, error) {
+	// work begins
+	span := trace.SpanFromContext(ctx)
+	defer span.End()
+
+	points, err := s.Repo.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var pickupPoints []*pb.PickupPoint
+	for _, point := range *points {
+		pickupPoints = append(pickupPoints, &pb.PickupPoint{
+			Id:          int64(point.ID),
+			Name:        point.Name,
+			Address:     point.Address,
+			PhoneNumber: point.PhoneNumber,
+		})
+	}
+	resp := &pb.ListPickupPointResponse{PickupPoints: pickupPoints}
 	return resp, nil
 }
 
