@@ -4,6 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
+	"net"
+	"net/http"
+	"os"
+	"os/signal"
+
 	"github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/joho/godotenv"
 	"github.com/prometheus/client_golang/prometheus"
@@ -19,15 +25,11 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
 	"grpc/internal/pkg/db"
 	"grpc/internal/pkg/pb"
 	"grpc/internal/pkg/repository"
 	"grpc/internal/pkg/repository/postgresql"
-	"log"
-	"net"
-	"net/http"
-	"os"
-	"os/signal"
 )
 
 type Service struct {
