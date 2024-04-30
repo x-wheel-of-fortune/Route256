@@ -117,11 +117,11 @@ func init() {
 func (s *Service) AddPickupPoint(ctx context.Context, req *pb.PickupPointRequest) (*pb.PickupPointResponse, error) {
 	span := trace.SpanFromContext(ctx)
 	defer span.End()
-
+	p := req.GetPickupPoint()
 	pickupPoint := &repository.PickupPoint{
-		Name:        req.PickupPoint.Name,
-		Address:     req.PickupPoint.Address,
-		PhoneNumber: req.PickupPoint.PhoneNumber,
+		Name:        p.GetName(),
+		Address:     p.GetAddress(),
+		PhoneNumber: p.GetPhoneNumber(),
 	}
 	err := s.validateAdd(ctx, pickupPoint)
 	if err != nil {
@@ -163,11 +163,12 @@ func (s *Service) UpdatePickupPoint(ctx context.Context, req *pb.PickupPointRequ
 	span := trace.SpanFromContext(ctx)
 	defer span.End()
 
+	p := req.GetPickupPoint()
 	pickupPoint := &repository.PickupPoint{
-		ID:          int(req.PickupPoint.Id),
-		Name:        req.PickupPoint.Name,
-		Address:     req.PickupPoint.Address,
-		PhoneNumber: req.PickupPoint.PhoneNumber,
+		ID:          int(p.GetId()),
+		Name:        p.GetName(),
+		Address:     p.GetAddress(),
+		PhoneNumber: p.GetPhoneNumber(),
 	}
 
 	err := s.validateUpdate(ctx, pickupPoint)
@@ -176,7 +177,7 @@ func (s *Service) UpdatePickupPoint(ctx context.Context, req *pb.PickupPointRequ
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	err = s.Repo.Update(ctx, req.PickupPoint.Id, pickupPoint)
+	err = s.Repo.Update(ctx, int64(pickupPoint.ID), pickupPoint)
 	if err != nil {
 		if errors.Is(err, repository.ErrObjectNotFound) {
 			clientErrorCountMetric.Add(1)
@@ -186,7 +187,7 @@ func (s *Service) UpdatePickupPoint(ctx context.Context, req *pb.PickupPointRequ
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 	resp := &pb.PickupPointResponse{
-		Id:          req.PickupPoint.Id,
+		Id:          int64(pickupPoint.ID),
 		Name:        pickupPoint.Name,
 		Address:     pickupPoint.Address,
 		PhoneNumber: pickupPoint.PhoneNumber,
@@ -215,11 +216,11 @@ func (s *Service) GetPickupPoint(ctx context.Context, req *pb.IdRequest) (*pb.Pi
 	// work begins
 	span := trace.SpanFromContext(ctx)
 	defer span.End()
-	if req.Id == 0 {
+	if req.GetId() == 0 {
 		clientErrorCountMetric.Add(1)
 		return nil, status.Error(codes.InvalidArgument, "id not specified")
 	}
-	point, err := s.Repo.GetByID(ctx, req.Id)
+	point, err := s.Repo.GetByID(ctx, req.GetId())
 	if err != nil {
 		internalErrorCountMetric.Add(1)
 		return nil, status.Error(codes.Internal, err.Error())
@@ -238,11 +239,11 @@ func (s *Service) DeletePickupPoint(ctx context.Context, req *pb.IdRequest) (*pb
 	// work begins
 	span := trace.SpanFromContext(ctx)
 	defer span.End()
-	if req.Id == 0 {
+	if req.GetId() == 0 {
 		clientErrorCountMetric.Add(1)
 		return nil, status.Error(codes.InvalidArgument, "id not specified")
 	}
-	err := s.Repo.Delete(ctx, req.Id)
+	err := s.Repo.Delete(ctx, req.GetId())
 	if err != nil {
 		internalErrorCountMetric.Add(1)
 		return nil, status.Error(codes.Internal, err.Error())
