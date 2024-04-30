@@ -126,13 +126,13 @@ func (s *Service) AddPickupPoint(ctx context.Context, req *pb.PickupPointRequest
 	err := s.validateAdd(ctx, pickupPoint)
 	if err != nil {
 		clientErrorCountMetric.Add(1)
-		return nil, status.Error(codes.InvalidArgument, err.Error())
+		return nil, status.Errorf(codes.InvalidArgument, err.Error())
 	}
 
 	id, err := s.Repo.Add(ctx, pickupPoint)
 	if err != nil {
 		internalErrorCountMetric.Add(1)
-		return nil, status.Error(codes.Internal, err.Error())
+		return nil, status.Errorf(codes.Internal, err.Error())
 	}
 	resp := &pb.PickupPointResponse{
 		Id:          id,
@@ -174,17 +174,17 @@ func (s *Service) UpdatePickupPoint(ctx context.Context, req *pb.PickupPointRequ
 	err := s.validateUpdate(ctx, pickupPoint)
 	if err != nil {
 		clientErrorCountMetric.Add(1)
-		return nil, status.Error(codes.InvalidArgument, err.Error())
+		return nil, status.Errorf(codes.InvalidArgument, err.Error())
 	}
 
 	err = s.Repo.Update(ctx, int64(pickupPoint.ID), pickupPoint)
 	if err != nil {
 		if errors.Is(err, repository.ErrObjectNotFound) {
 			clientErrorCountMetric.Add(1)
-			return nil, status.Error(codes.NotFound, err.Error())
+			return nil, status.Errorf(codes.NotFound, err.Error())
 		}
 		internalErrorCountMetric.Add(1)
-		return nil, status.Error(codes.Internal, err.Error())
+		return nil, status.Errorf(codes.Internal, err.Error())
 	}
 	resp := &pb.PickupPointResponse{
 		Id:          int64(pickupPoint.ID),
@@ -218,12 +218,12 @@ func (s *Service) GetPickupPoint(ctx context.Context, req *pb.IdRequest) (*pb.Pi
 	defer span.End()
 	if req.GetId() == 0 {
 		clientErrorCountMetric.Add(1)
-		return nil, status.Error(codes.InvalidArgument, "id not specified")
+		return nil, status.Errorf(codes.InvalidArgument, "id not specified")
 	}
 	point, err := s.Repo.GetByID(ctx, req.GetId())
 	if err != nil {
 		internalErrorCountMetric.Add(1)
-		return nil, status.Error(codes.Internal, err.Error())
+		return nil, status.Errorf(codes.Internal, err.Error())
 	}
 	resp := &pb.PickupPointResponse{
 		Id:          int64(point.ID),
@@ -241,12 +241,12 @@ func (s *Service) DeletePickupPoint(ctx context.Context, req *pb.IdRequest) (*pb
 	defer span.End()
 	if req.GetId() == 0 {
 		clientErrorCountMetric.Add(1)
-		return nil, status.Error(codes.InvalidArgument, "id not specified")
+		return nil, status.Errorf(codes.InvalidArgument, "id not specified")
 	}
 	err := s.Repo.Delete(ctx, req.GetId())
 	if err != nil {
 		internalErrorCountMetric.Add(1)
-		return nil, status.Error(codes.Internal, err.Error())
+		return nil, status.Errorf(codes.Internal, err.Error())
 	}
 	return &pb.Empty{}, nil
 }
@@ -259,7 +259,7 @@ func (s *Service) ListPickupPoint(ctx context.Context, req *pb.Empty) (*pb.ListP
 	points, err := s.Repo.List(ctx)
 	if err != nil {
 		internalErrorCountMetric.Add(1)
-		return nil, status.Error(codes.Internal, err.Error())
+		return nil, status.Errorf(codes.Internal, err.Error())
 	}
 	var pickupPoints []*pb.PickupPoint
 	for _, point := range *points {
