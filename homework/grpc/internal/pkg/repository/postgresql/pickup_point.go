@@ -8,7 +8,6 @@ import (
 
 	"grpc/internal/pkg/db"
 	"grpc/internal/pkg/repository"
-	"grpc/internal/pkg/repository/in_memory_cache"
 )
 
 type InMemoryCache interface {
@@ -23,8 +22,7 @@ type PickupPointRepo struct {
 
 func NewPickupPoints(database db.DBops) *PickupPointRepo {
 	return &PickupPointRepo{
-		db:      database,
-		IMCache: in_memory_cache.NewInMemoryCache(),
+		db: database,
 	}
 }
 
