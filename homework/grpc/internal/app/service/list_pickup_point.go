@@ -2,9 +2,11 @@ package service
 
 import (
 	"context"
+
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
 	"grpc/internal/pkg/pb"
 )
 

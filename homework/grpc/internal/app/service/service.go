@@ -2,6 +2,7 @@ package service
 
 import (
 	"go.opentelemetry.io/otel/trace"
+
 	"grpc/internal/pkg/pb"
 	"grpc/internal/pkg/repository"
 )

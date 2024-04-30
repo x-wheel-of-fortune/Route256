@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"grpc/internal/pkg/repository/postgresql"
 	"log"
 	"net"
 	"net/http"
@@ -16,14 +15,13 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel"
 	"google.golang.org/grpc"
+
 	"grpc/internal/app/service"
 	"grpc/internal/pkg/db"
 	"grpc/internal/pkg/jaeger"
 	"grpc/internal/pkg/pb"
+	"grpc/internal/pkg/repository/postgresql"
 )
-
-// Initializes an OTLP exporter, and configures the corresponding trace and
-// metric providers.
 
 func init() {
 	// Register standard server metrics and customized metrics to registry.
